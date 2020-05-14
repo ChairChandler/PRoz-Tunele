@@ -1,11 +1,16 @@
-#ifndef THREAD_H
-#define THREAD_H
+#ifndef RUNNABLE_H
+#define RUNNABLE_H
+#include <thread>
 
-
-class Thread
+class Runnable
 {
+    std::thread task;
+protected:
+    virtual void run() = 0;
 public:
-    Thread();
+    Runnable();
+    void start();
+    void stop();
 };
 
-#endif // THREAD_H
+#endif // RUNNABLE_H

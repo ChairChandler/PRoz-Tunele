@@ -2,10 +2,12 @@
 #define RICHMANINFO_H
 
 
-class RichmanInfo
+struct RichmanInfo
 {
-public:
-    RichmanInfo();
+    int counter = 0;
+    int id;
+
+    RichmanInfo(int id);
 };
 
 #endif // RICHMANINFO_H
