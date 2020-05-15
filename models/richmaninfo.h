@@ -2,12 +2,16 @@
 #define RICHMANINFO_H
 
 
-struct RichmanInfo
+class RichmanInfo
 {
     int counter = 0;
-    int id;
-
+    const int id;
+public:
     RichmanInfo(int id);
+    RichmanInfo& incrementCounter();
+    RichmanInfo& incrementCounter(int val);
+    int getCounter() const;
+    int getId() const;
 };
 
 #endif // RICHMANINFO_H

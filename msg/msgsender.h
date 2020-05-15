@@ -29,10 +29,10 @@ private:
     const Target targetId;
     void send(Packet packet, int dest);
 public:
-    MsgSender(Target targetId);
+    explicit MsgSender(Target targetId);
     static void setAllTarget(std::vector<int> target);
-    void sendRequest(Request msg, RichmanInfo payload, Tunnel tunnel);
-    void sendReply(Reply msg, RichmanInfo payload, Tunnel tunnel);
+    void sendRequest(Request msg, RichmanInfo payload, int tunnel_id);
+    void sendReply(Reply msg, RichmanInfo payload, int tunnel_id);
 };
 
 #endif // MSGSENDER_H

@@ -10,16 +10,16 @@ struct Packet
 {
     std::variant<Request, Reply> type;
     RichmanInfo data;
-    Tunnel tunnel;
+    int tunnel_id;
 
     // empty packet
-    Packet(): data(-1), tunnel(-1, -1, -1, Place::Earth)
+    Packet(): data(-1)
     {
 
     }
     // ready packet
-    Packet(std::variant<Request, Reply> type, RichmanInfo data, Tunnel tunnel):
-        type(type), data(data), tunnel(tunnel)
+    Packet(std::variant<Request, Reply> type, RichmanInfo data, int tunnel_id):
+        type(type), data(data), tunnel_id(tunnel_id)
     {
 
     }

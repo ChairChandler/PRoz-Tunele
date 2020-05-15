@@ -7,11 +7,13 @@
 
 class Richman
 {
+private:
     std::atomic<RichmanInfo> info;
     TunnelWalker walker;
     MsgDispatcher dispatcher;
 public:
-    Richman(int id, size_t queueMaxSize, size_t tunnelMaxSize);
+    explicit Richman(int id, int richmansAmount, int tunnelsAmount,
+                     size_t queueCapacity, size_t tunnelCapacity);
     void start();
     void stop();
 };

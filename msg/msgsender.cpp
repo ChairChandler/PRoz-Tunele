@@ -12,15 +12,15 @@ void MsgSender::setAllTarget(std::vector<int> target)
     Visit::setAllTarget(target);
 }
 
-void MsgSender::sendRequest(Request msg, RichmanInfo payload, Tunnel tunnel)
+void MsgSender::sendRequest(Request msg, RichmanInfo payload, int tunnel_id)
 {
-    Packet p(msg, payload, tunnel);
+    Packet p(msg, payload, tunnel_id);
     std::visit(Visit(MsgComm::RequestRecvTag, p), this->targetId);
 }
 
-void MsgSender::sendReply(Reply msg, RichmanInfo payload, Tunnel tunnel)
+void MsgSender::sendReply(Reply msg, RichmanInfo payload, int tunnel_id)
 {
-    Packet p(msg, payload, tunnel);
+    Packet p(msg, payload, tunnel_id);
     std::visit(Visit(MsgComm::ReplyRecvTag, p), this->targetId);
 }
 

@@ -1,7 +1,9 @@
 #include "richman.h"
 
-Richman::Richman(int id, size_t queueMaxSize, size_t tunnelMaxSize):
-    info(RichmanInfo(id)), walker(info, Place::Earth), dispatcher(info, queueMaxSize, tunnelMaxSize)
+Richman::Richman(int id, int richmansAmount, int tunnelsAmount, size_t queueCapacity, size_t tunnelCapacity):
+    info(RichmanInfo(id)),
+    walker(info, Place::Earth, tunnelsAmount),
+    dispatcher(info, queueCapacity, tunnelCapacity, richmansAmount)
 {
 
 }

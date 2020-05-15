@@ -1,18 +1,20 @@
-//#include <mpi/mpi.h>
+#include <mpi.h>
 #include "richman/richman.h"
-#include <vector>
 
 int main(int argc, char *argv[])
 {
-    //MPI_Init(&argc, &argv);
+    MPI_Init(&argc, &argv);
 
-    const int id = 0;
-    const int richmansAmount = 10, richmanGroupSize = 1;
-    const int tunnelAmount = 2, tunnelCapacity = 2, queueCapacity = 5;
+    int id, richmansAmount;
+    //const int richmanGroupSize = 1;
+    const int tunnelsAmount = 2, tunnelCapacity = 2, queueCapacity = 5;
 
-    Richman richman(id, queueCapacity, tunnelCapacity);
+    MPI_Comm_rank(MPI_COMM_WORLD, &id);
+    MPI_Comm_size(MPI_COMM_WORLD, &richmansAmount);
+
+    Richman richman(id, richmansAmount, tunnelsAmount, queueCapacity, tunnelCapacity);
     richman.start();
 
-    //MPI_Finalize();
+    MPI_Finalize();
     return 0;
 }

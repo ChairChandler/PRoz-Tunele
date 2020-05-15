@@ -28,7 +28,7 @@ private:
     const Target targetId;
     const int receiverId;
 public:
-    MsgReceiver(int receiverId, Target targetId);
+    explicit MsgReceiver(int receiverId, Target targetId);
     static void setAllTarget(std::vector<int> target);
     Packet wait();
     Packet wait(MsgComm tag);
