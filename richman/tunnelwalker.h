@@ -15,12 +15,13 @@ class TunnelWalker: public Runnable
     std::atomic<RichmanInfo> &parentData;
     Place place;
     const int tunnelsAmount;
-public:
-    explicit TunnelWalker(std::atomic<RichmanInfo> &parentData, Place startingPlace, int tunnelsAmount);
-    void run() override;
+
     int enterTunnel();
     void wait();
     void exitTunnel(int tunnel_id);
+public:
+    explicit TunnelWalker(std::atomic<RichmanInfo> &parentData, Place startingPlace, int tunnelsAmount);
+    void run() override;
 };
 
 #endif // TUNNELWALKER_H

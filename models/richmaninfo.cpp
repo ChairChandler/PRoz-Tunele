@@ -1,5 +1,10 @@
 #include "richmaninfo.h"
 
+RichmanInfo::RichmanInfo()
+{
+
+}
+
 RichmanInfo::RichmanInfo(int id): id(id)
 {
 
@@ -17,6 +22,11 @@ RichmanInfo& RichmanInfo::incrementCounter(int val)
     return *this;
 }
 
+void RichmanInfo::setCounter(int val)
+{
+    this->counter = val;
+}
+
 int RichmanInfo::getCounter() const
 {
     return counter;
@@ -25,4 +35,9 @@ int RichmanInfo::getCounter() const
 int RichmanInfo::getId() const
 {
     return id;
+}
+
+bool RichmanInfo::operator==(const RichmanInfo &a) const
+{
+    return this->id == a.getId() && this->counter == a.getCounter();
 }

@@ -5,13 +5,16 @@
 class RichmanInfo
 {
     int counter = 0;
-    const int id;
+    int id;
 public:
+    RichmanInfo();
     RichmanInfo(int id);
     RichmanInfo& incrementCounter();
     RichmanInfo& incrementCounter(int val);
+    void setCounter(int val);
     int getCounter() const;
     int getId() const;
+    bool operator==(const RichmanInfo &a) const;
 };
 
 #endif // RICHMANINFO_H

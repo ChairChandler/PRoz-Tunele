@@ -5,7 +5,6 @@ enum struct Reply
 {
     Enter,
     Exit,
-    Wait,
     Deny
 };
 

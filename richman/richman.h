@@ -9,6 +9,7 @@ class Richman
 {
 private:
     std::atomic<RichmanInfo> info;
+    Tunnel earthTunnel, dimTunnel;
     TunnelWalker walker;
     MsgDispatcher dispatcher;
 public:

@@ -26,9 +26,9 @@ public:
     {
 
     }
-    size_t max_size()
+    size_t max_size() const
     {
-        return this->max_size();
+        return this->maxSize;
     }
 
     iterator insert( const_iterator pos, const T& value )

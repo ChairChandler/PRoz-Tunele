@@ -28,7 +28,7 @@ public:
     {
 
     }
-    size_t max_size()
+    size_t max_size() const
     {
         return this->maxSize;
     }

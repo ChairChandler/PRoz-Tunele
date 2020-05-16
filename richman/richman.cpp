@@ -2,8 +2,13 @@
 
 Richman::Richman(int id, int richmansAmount, int tunnelsAmount, size_t queueCapacity, size_t tunnelCapacity):
     info(RichmanInfo(id)),
+    earthTunnel(0, queueCapacity, tunnelCapacity, Place::Earth),
+    dimTunnel(1, queueCapacity, tunnelCapacity, Place::Dimension),
     walker(info, Place::Earth, tunnelsAmount),
-    dispatcher(info, queueCapacity, tunnelCapacity, richmansAmount)
+    dispatcher(info, std::map<int, Tunnel>{
+        {earthTunnel.getTunnelId(), earthTunnel},
+        {dimTunnel.getTunnelId(), dimTunnel}},
+               richmansAmount)
 {
 
 }

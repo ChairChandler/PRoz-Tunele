@@ -16,20 +16,26 @@ public:
 private:
     class Visit // handle variant different types
     {
+        const bool isSenderIdInit;
+        const int senderId;
         const MsgComm tag;
         const Packet packet;
         static std::vector<int> allTarget;
     public:
-        Visit(MsgComm tag, Packet packet);
+        explicit Visit(MsgComm tag, Packet packet);
+        explicit Visit(MsgComm tag, Packet packet, int senderId);
         static void setAllTarget(std::vector<int> target);
         void operator()(int target);
         void operator()(std::vector<int> target);
         void operator()(SpecificTarget target);
     };
+    const bool isSenderIdInit;
     const Target targetId;
+    const int senderId;
     void send(Packet packet, int dest);
 public:
     explicit MsgSender(Target targetId);
+    explicit MsgSender(int senderId, Target targetId);
     static void setAllTarget(std::vector<int> target);
     void sendRequest(Request msg, RichmanInfo payload, int tunnel_id);
     void sendReply(Reply msg, RichmanInfo payload, int tunnel_id);

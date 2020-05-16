@@ -2,7 +2,12 @@
 #include <stdexcept>
 #include <mpi.h>
 
-MsgSender::MsgSender(Target targetId): targetId(targetId)
+MsgSender::MsgSender(Target targetId): isSenderIdInit(false), targetId(targetId), senderId()
+{
+
+}
+
+MsgSender::MsgSender(int senderId, MsgSender::Target targetId): isSenderIdInit(true), targetId(targetId), senderId(senderId)
 {
 
 }
@@ -24,7 +29,12 @@ void MsgSender::sendReply(Reply msg, RichmanInfo payload, int tunnel_id)
     std::visit(Visit(MsgComm::ReplyRecvTag, p), this->targetId);
 }
 
-MsgSender::Visit::Visit(MsgComm tag, Packet packet): tag(tag), packet(packet)
+MsgSender::Visit::Visit(MsgComm tag, Packet packet): isSenderIdInit(false), senderId(), tag(tag), packet(packet)
+{
+
+}
+
+MsgSender::Visit::Visit(MsgComm tag, Packet packet, int senderId): isSenderIdInit(true), senderId(senderId), tag(tag), packet(packet)
 {
 
 }
@@ -36,10 +46,12 @@ void MsgSender::Visit::setAllTarget(std::vector<int> target)
 
 void MsgSender::Visit::operator()(int target)
 {
-    int size = sizeof(this->packet);
-    int tag = static_cast<int>(this->tag);
-    MPI_Send(&size, 1, MPI_INT, target, tag, MPI_COMM_WORLD); // first send size
-    MPI_Send(&this->packet, size, MPI_BYTE, target, tag, MPI_COMM_WORLD); // then send packet(data)
+    if(!this->isSenderIdInit || target != this->senderId) { // later it should be changed to decorator
+        int size = sizeof(this->packet);
+        int tag = static_cast<int>(this->tag);
+        MPI_Send(&size, 1, MPI_INT, target, tag, MPI_COMM_WORLD); // first send size
+        MPI_Send(&this->packet, size, MPI_BYTE, target, tag, MPI_COMM_WORLD); // then send packet(data)
+    }
 }
 
 void MsgSender::Visit::operator()(std::vector<int> target)
@@ -61,7 +73,7 @@ void MsgSender::Visit::operator()(SpecificTarget target)
         break;
 
         case SpecificTarget::Self:
-            this->operator()(this->packet.data.id);
+            this->operator()(this->packet.data.getId());
         break;
     }
 }
