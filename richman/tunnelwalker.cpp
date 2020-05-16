@@ -3,8 +3,8 @@
 #include "msg/msgreceiver.h"
 #include <stdexcept>
 
-TunnelWalker::TunnelWalker(std::atomic<RichmanInfo> &parentData, Place startingPlace, int tunnelsAmount):
-    parentData(parentData), place(startingPlace), tunnelsAmount(tunnelsAmount)
+TunnelWalker::TunnelWalker(std::atomic<RichmanInfo> &parentData, Place startingPlace, const std::vector<Tunnel> &tInfo):
+    parentData(parentData), place(startingPlace), tInfo(tInfo)
 {
 
 }
@@ -24,22 +24,27 @@ int TunnelWalker::enterTunnel()
     static MsgReceiver walkerRecv(this->parentData.load().getId(), SpecificTarget::Self);
 
     while(true) {
-        for(int tid=0; tid < this->tunnelsAmount; tid++) {
-            this->parentData.store(this->parentData.load().incrementCounter());
-            walkerSend.sendRequest(Request::Enter, this->parentData, tid);
-            Packet p = walkerRecv.wait(MsgComm::ReplyRecvTag);
-            switch(std::get<Reply>(p.type)) {
-                case Reply::Enter:
-                    return tid;
-                break;
+        for(const Tunnel &tInfo: this->tInfo) {
+            if(tInfo.getDirection() == this->place) {
+                continue;
+            } else {
+                int tid = tInfo.getTunnelId();
+                this->parentData.store(this->parentData.load().incrementCounter());
+                walkerSend.sendRequest(Request::Enter, this->parentData, tid);
+                Packet p = walkerRecv.wait(MsgComm::ReplyRecvTag);
+                switch(std::get<Reply>(p.type)) {
+                    case Reply::Enter:
+                        return tid;
+                    break;
 
-                case Reply::Deny:
-                    continue;
-                break;
+                    case Reply::Deny:
+                        continue;
+                    break;
 
-                default:
-                    throw std::runtime_error("cannot handle reply code in walker");
-                break;
+                    default:
+                        throw std::runtime_error("cannot handle reply code in walker");
+                    break;
+                }
             }
         }
     }

@@ -12,17 +12,21 @@ class Tunnel
     Place direction;
     int id;
 public:
+    Tunnel(const Tunnel &tunnel);
     Tunnel(int tunnelId, size_t queueMaxSize, size_t insideMaxSize, Place direction);
     int getTunnelId() const;
     bool isQueueFilled() const;
-    bool isInsideFilled() const;
+    bool isTunnelFilled() const;
+    bool isInsideTunnel(int id) const;
     Tunnel& appendQueue(const RichmanInfo &info);
-    Tunnel& insertInside(int id);
+    Tunnel& insertTunnel(int id);
     Tunnel& removeFromQueue(const RichmanInfo &info);
-    Tunnel& removeFromInside(int id);
+    Tunnel& removeFromQueue(int id);
+    Tunnel& removeFromTunnel(int id);
     void sortQueueByTime();
     bool isFirstInQueue(const RichmanInfo &info) const;
     std::pair<RichmanInfo, bool> getFromQueue(int pos) const;
+    Place getDirection() const;
 };
 
 #endif // TUNNEL_H

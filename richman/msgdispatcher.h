@@ -2,7 +2,6 @@
 #define MSGDISPATCHER_H
 #include "runnable.h"
 #include "models/richmaninfo.h"
-#include "richman.h"
 #include "tunnel/tunnel.h"
 #include "models/packet.h"
 #include <atomic>

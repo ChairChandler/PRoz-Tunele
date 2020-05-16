@@ -1,6 +1,16 @@
 #include "tunnel.h"
 #include <algorithm>
 
+Place Tunnel::getDirection() const
+{
+    return direction;
+}
+
+Tunnel::Tunnel(const Tunnel &tunnel): queue(tunnel.queue), inside(tunnel.inside), direction(tunnel.direction), id(tunnel.id)
+{
+
+}
+
 Tunnel::Tunnel(int tunnelId, size_t queueMaxSize, size_t insideMaxSize, Place direction):
     queue(queueMaxSize), inside(insideMaxSize), direction(direction), id(tunnelId) {
 
@@ -43,14 +53,26 @@ std::pair<RichmanInfo, bool> Tunnel::getFromQueue(int pos) const
     }
 }
 
-bool Tunnel::isInsideFilled() const
+bool Tunnel::isTunnelFilled() const
 {
     return this->inside.size() < this->inside.max_size();
 }
 
-Tunnel &Tunnel::insertInside(int id)
+bool Tunnel::isInsideTunnel(int id) const
+{
+    return this->inside.find(id) == this->inside.end() ? false : true;
+}
+
+Tunnel &Tunnel::insertTunnel(int id)
 {
     this->inside.insert(id);
+    return *this;
+}
+
+Tunnel &Tunnel::removeFromQueue(int id)
+{
+    auto it = std::find(this->queue.begin(), this->queue.end(), [&id](const RichmanInfo &a){return a.getId() == id;});
+    this->queue.erase(it);
     return *this;
 }
 
@@ -61,7 +83,7 @@ Tunnel &Tunnel::removeFromQueue(const RichmanInfo &info)
     return *this;
 }
 
-Tunnel &Tunnel::removeFromInside(int id)
+Tunnel &Tunnel::removeFromTunnel(int id)
 {
     this->inside.erase(id);
     return *this;

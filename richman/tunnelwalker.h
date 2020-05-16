@@ -7,6 +7,7 @@
 #include "tunnel/tunnel.h"
 #include <atomic>
 #include <chrono>
+#include <vector>
 
 class TunnelWalker: public Runnable
 {
@@ -14,13 +15,13 @@ class TunnelWalker: public Runnable
     const miliseconds waitTime = miliseconds(500);
     std::atomic<RichmanInfo> &parentData;
     Place place;
-    const int tunnelsAmount;
+    const std::vector<Tunnel> &tInfo;
 
     int enterTunnel();
     void wait();
     void exitTunnel(int tunnel_id);
 public:
-    explicit TunnelWalker(std::atomic<RichmanInfo> &parentData, Place startingPlace, int tunnelsAmount);
+    explicit TunnelWalker(std::atomic<RichmanInfo> &parentData, Place startingPlace, const std::vector<Tunnel> &tInfo);
     void run() override;
 };
 

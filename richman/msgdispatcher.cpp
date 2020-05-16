@@ -27,7 +27,22 @@ void MsgDispatcher::run()
 
 void MsgDispatcher::executeOperation(Packet packet)
 {
+    struct Visit
+    {
+        MsgDispatcher &ds;
+        Packet &p;
+        Visit(MsgDispatcher &ds, Packet &p): ds(ds), p(p) {}
+        void operator()(Request r)
+        {
+            ds.handleMsg(r, p.data, p.tunnel_id);
+        }
+        void operator()(Reply r)
+        {
+            ds.handleMsg(r, p.data);
+        }
+    };
 
+    std::visit(Visit(*this, packet), packet.type);
 }
 
 void MsgDispatcher::handleMsg(Request type, RichmanInfo data, int tunnel_id)
@@ -52,8 +67,8 @@ void MsgDispatcher::handleMsg(Request type, RichmanInfo data, int tunnel_id)
             } else {
                 tunnel.appendQueue(data).sortQueueByTime();
                 if(expectant_id != self_id) {
-                    if(tunnel.isFirstInQueue(data) && !tunnel.isInsideFilled()) {
-                        tunnel.insertInside(expectant_id);
+                    if(tunnel.isFirstInQueue(data) && !tunnel.isTunnelFilled()) {
+                        tunnel.insertTunnel(expectant_id);
                         this->parentData.store(this->parentData.load().incrementCounter());
                         MsgSender(expectant_id).sendReply(Reply::Enter, this->parentData, tunnel_id);
                     }
@@ -66,7 +81,7 @@ void MsgDispatcher::handleMsg(Request type, RichmanInfo data, int tunnel_id)
 
         case Request::Exit:
             if(expectant_id != self_id) {
-                tunnel.removeFromInside(expectant_id);
+                tunnel.removeFromTunnel(expectant_id);
                 this->parentData.store(this->parentData.load().incrementCounter());
                 MsgSender(expectant_id).sendReply(Reply::Exit, this->parentData, tunnel_id);
                 auto [first, ok] = tunnel.getFromQueue(0);
@@ -112,13 +127,29 @@ void MsgDispatcher::handleSelfWalker()
     static MsgSender walker(selfId);
     static const int amountSenders = this->richmansAmount - 1;
 
-    if(this->selfWalkerPositiveResponse == amountSenders) {
+    Tunnel &tunnel = this->tunnels[this->selfWalkerTunnelId];
 
-    } else if(this->selfWalkerNegativeResponse == amountSenders ||
-              (this->selfWalkerNegativeResponse + this->selfWalkerPositiveResponse) == amountSenders) {
+    if(this->selfWalkerPositiveResponse == amountSenders) {
+        this->selfWalkerPositiveResponse = 0;
+        this->parentData.store(this->parentData.load().incrementCounter());
+
+        if(tunnel.isInsideTunnel(selfId)) {
+            tunnel.removeFromTunnel(selfId);
+            walker.sendReply(Reply::Exit, this->parentData, this->selfWalkerTunnelId);
+        } else {
+            auto [first, ok] = tunnel.getFromQueue(0);
+            if(ok && first.getId() == selfId) {
+                tunnel.removeFromQueue(selfId).insertTunnel(selfId);
+                walker.sendReply(Reply::Enter, this->parentData, this->selfWalkerTunnelId);
+            } else {
+                throw std::runtime_error("invalid queque state");
+            }
+        }
+
+    } else if((this->selfWalkerNegativeResponse + this->selfWalkerPositiveResponse) == amountSenders) {
         this->selfWalkerNegativeResponse = 0;
         this->selfWalkerPositiveResponse = 0;
-        //this->tunnels[this->selfWalkerTunnelId].removeFromQueue();
+        tunnel.removeFromQueue(selfId);
         this->parentData.store(this->parentData.load().incrementCounter());
         walker.sendReply(Reply::Deny, this->parentData, this->selfWalkerTunnelId);
     }
