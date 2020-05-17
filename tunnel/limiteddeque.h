@@ -34,25 +34,25 @@ public:
     iterator insert( const_iterator pos, const T& value )
     {
         this->check_size();
-        return std::deque<T>::template insert(pos, value);
+        return std::deque<T>::insert(pos, value);
     }
 
     iterator insert( const_iterator pos, T&& value )
     {
         this->check_size();
-        return std::deque<T>::template insert(pos, value);
+        return std::deque<T>::insert(pos, value);
     }
 
     void push_back( const T& value )
     {
         this->check_size();
-        return std::deque<T>::template push_back(value);
+        return std::deque<T>::push_back(value);
     }
 
     void push_front( const T& value )
     {
         this->check_size();
-        return std::deque<T>::template push_front(value);
+        return std::deque<T>::push_front(value);
     }
 
     //too much to implement size checking so delete it

@@ -1,3 +1,0 @@
-/home/adam/Desktop/studia/Prow/Projekt/c++/MPI/CMakeFiles/rebuild_cache.dir
-/home/adam/Desktop/studia/Prow/Projekt/c++/MPI/CMakeFiles/main.dir
-/home/adam/Desktop/studia/Prow/Projekt/c++/MPI/CMakeFiles/edit_cache.dir

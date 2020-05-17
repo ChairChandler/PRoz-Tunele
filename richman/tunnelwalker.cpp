@@ -2,6 +2,8 @@
 #include "msg/msgsender.h"
 #include "msg/msgreceiver.h"
 #include <stdexcept>
+#include "richman.h"
+#include <iostream>
 
 TunnelWalker::TunnelWalker(std::atomic<RichmanInfo> &parentData, Place startingPlace, const std::vector<Tunnel> &tInfo):
     parentData(parentData), place(startingPlace), tInfo(tInfo)
@@ -11,9 +13,13 @@ TunnelWalker::TunnelWalker(std::atomic<RichmanInfo> &parentData, Place startingP
 
 void TunnelWalker::run()
 {
+    int id = parentData.load().getId();
     while(true) {
+        std::cout << "[" << id << "] " << "Enter tunnel";
         int tunnel_id = this->enterTunnel();
+        std::cout << "[" << id << "] " << "Exit tunnel";
         this->exitTunnel(tunnel_id);
+        std::cout << "[" << id << "] " << "Wait";
         this->wait();
     }
 }

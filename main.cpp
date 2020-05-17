@@ -15,6 +15,10 @@ int main(int argc, char *argv[])
     Richman richman(id, richmansAmount, tunnelsAmount, queueCapacity, tunnelCapacity);
     richman.start();
 
+    while(true) {
+
+    }
+
     MPI_Finalize();
     return 0;
 }

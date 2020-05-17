@@ -3,7 +3,6 @@
 #include "runnable.h"
 #include "models/place.h"
 #include "models/richmaninfo.h"
-#include "richman.h"
 #include "tunnel/tunnel.h"
 #include <atomic>
 #include <chrono>

@@ -66,14 +66,14 @@ Tunnel &Tunnel::insertTunnel(int id)
 
 Tunnel &Tunnel::removeFromQueue(int id)
 {
-    auto it = std::find(this->queue.begin(), this->queue.end(), [&id](const RichmanInfo &a){return a.getId() == id;});
+    auto it = std::find_if(this->queue.begin(), this->queue.end(), [&id](const RichmanInfo &a){return a.getId() == id;});
     this->queue.erase(it);
     return *this;
 }
 
 Tunnel &Tunnel::removeFromQueue(const RichmanInfo &info)
 {
-    auto it = std::find(this->queue.begin(), this->queue.end(), [&info](const RichmanInfo &a){return info == a;});
+    auto it = std::find_if(this->queue.begin(), this->queue.end(), [&info](const RichmanInfo &a){return info == a;});
     this->queue.erase(it);
     return *this;
 }

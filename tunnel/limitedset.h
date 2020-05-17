@@ -37,7 +37,7 @@ public:
     insert(const T &val)
     {
         this->check_size();
-        return std::set<T>::template insert(val);
+        return std::set<T>::insert(val).first;
     }
 
     std::pair<iterator,bool> insert( value_type&& value )

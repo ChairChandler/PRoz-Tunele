@@ -3,6 +3,10 @@ CONFIG += console c++17
 CONFIG -= app_bundle
 CONFIG -= qt
 
+QMAKE_CXXFLAGS += -std=c++0x -pthread
+LIBS += -pthread
+INCLUDEPATH += /usr/lib/x86_64-linux-gnu/openmpi/include
+
 SOURCES += \
         main.cpp \
         models/richmaninfo.cpp \

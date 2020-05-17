@@ -15,7 +15,7 @@ private:
         MsgComm tag;
         Packet packet;
         int receiverId;
-        static std::vector<int> allTarget;
+        static inline std::vector<int> allTarget = std::vector<int>();
     public:
         Visit();
         Visit(int receiverId, MsgComm tag);

@@ -20,7 +20,7 @@ private:
         const int senderId;
         const MsgComm tag;
         const Packet packet;
-        static std::vector<int> allTarget;
+        static inline std::vector<int> allTarget = std::vector<int>();
     public:
         explicit Visit(MsgComm tag, Packet packet);
         explicit Visit(MsgComm tag, Packet packet, int senderId);
