@@ -6,11 +6,12 @@
 #include "models/packet.h"
 #include <atomic>
 #include <map>
+#include <memory>
 
 class MsgDispatcher: public Runnable
 {
     std::atomic<RichmanInfo> &parentData;
-    std::map<int, Tunnel> tunnels;
+    std::map<int, std::shared_ptr<Tunnel>> tunnels;
     const int richmansAmount;
 
     int selfWalkerTunnelId;
@@ -22,7 +23,9 @@ class MsgDispatcher: public Runnable
     void executeOperation(Packet packet);
     void handleSelfWalker();
 public:
-    explicit MsgDispatcher(std::atomic<RichmanInfo> &parentData, const std::map<int, Tunnel> &tunnels, int richmansAmount);
+    using TunnelPtr = std::shared_ptr<Tunnel>;
+    using TunnelMap = std::map<int, TunnelPtr>;
+    explicit MsgDispatcher(std::atomic<RichmanInfo> &parentData, const TunnelMap &tunnels, int richmansAmount);
     void run() override;
 };
 

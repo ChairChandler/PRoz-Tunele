@@ -3,7 +3,7 @@
 #include "msg/msgsender.h"
 #include <cmath>
 
-MsgDispatcher::MsgDispatcher(std::atomic<RichmanInfo> &parentData, const std::map<int, Tunnel> &tunnels, int richmansAmount):
+MsgDispatcher::MsgDispatcher(std::atomic<RichmanInfo> &parentData, const TunnelMap &tunnels, int richmansAmount):
     parentData(parentData),
     tunnels(tunnels),
     richmansAmount(richmansAmount)
@@ -47,7 +47,7 @@ void MsgDispatcher::executeOperation(Packet packet)
 
 void MsgDispatcher::handleMsg(Request type, RichmanInfo data, int tunnel_id)
 {
-    Tunnel &tunnel = this->tunnels[tunnel_id];
+    Tunnel &tunnel = *this->tunnels[tunnel_id].get();
     const int expectant_id = data.getId();
     const int expectant_counter = data.getCounter();
     static const int self_id = this->parentData.load().getId();
@@ -127,7 +127,7 @@ void MsgDispatcher::handleSelfWalker()
     static MsgSender walker(selfId);
     static const int amountSenders = this->richmansAmount - 1;
 
-    Tunnel &tunnel = this->tunnels[this->selfWalkerTunnelId];
+    Tunnel &tunnel = *this->tunnels[this->selfWalkerTunnelId].get();
 
     if(this->selfWalkerPositiveResponse == amountSenders) {
         this->selfWalkerPositiveResponse = 0;

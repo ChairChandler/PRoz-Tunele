@@ -12,7 +12,6 @@ class Tunnel
     Place direction;
     int id;
 public:
-    Tunnel(const Tunnel &tunnel);
     Tunnel(int tunnelId, size_t queueMaxSize, size_t insideMaxSize, Place direction);
     int getTunnelId() const;
     bool isQueueFilled() const;

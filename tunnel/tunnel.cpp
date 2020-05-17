@@ -6,11 +6,6 @@ Place Tunnel::getDirection() const
     return direction;
 }
 
-Tunnel::Tunnel(const Tunnel &tunnel): queue(tunnel.queue), inside(tunnel.inside), direction(tunnel.direction), id(tunnel.id)
-{
-
-}
-
 Tunnel::Tunnel(int tunnelId, size_t queueMaxSize, size_t insideMaxSize, Place direction):
     queue(queueMaxSize), inside(insideMaxSize), direction(direction), id(tunnelId) {
 
