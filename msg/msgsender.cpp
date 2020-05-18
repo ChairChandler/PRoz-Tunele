@@ -20,21 +20,23 @@ void MsgSender::setAllTarget(std::vector<int> target)
 void MsgSender::sendRequest(Request msg, RichmanInfo payload, int tunnel_id)
 {
     Packet p(msg, payload, tunnel_id);
-    std::visit(Visit(MsgComm::RequestRecvTag, p), this->targetId);
+    std::visit(Visit(MsgComm::RequestRecvTag, p).overloaded, this->targetId);
 }
 
 void MsgSender::sendReply(Reply msg, RichmanInfo payload, int tunnel_id)
 {
     Packet p(msg, payload, tunnel_id);
-    std::visit(Visit(MsgComm::ReplyRecvTag, p), this->targetId);
+    std::visit(Visit(MsgComm::ReplyRecvTag, p).overloaded, this->targetId);
 }
 
-MsgSender::Visit::Visit(MsgComm tag, Packet packet): isSenderIdInit(false), senderId(), tag(tag), packet(packet)
+MsgSender::Visit::Visit(MsgComm tag, Packet packet):
+    isSenderIdInit(false), senderId(), tag(tag), packet(packet), overloaded(*this)
 {
 
 }
 
-MsgSender::Visit::Visit(MsgComm tag, Packet packet, int senderId): isSenderIdInit(true), senderId(senderId), tag(tag), packet(packet)
+MsgSender::Visit::Visit(MsgComm tag, Packet packet, int senderId):
+    isSenderIdInit(true), senderId(senderId), tag(tag), packet(packet), overloaded(*this)
 {
 
 }
@@ -44,28 +46,33 @@ void MsgSender::Visit::setAllTarget(std::vector<int> target)
     Visit::allTarget = target;
 }
 
-void MsgSender::Visit::operator()(int target)
+MsgSender::Visit::Overloaded::Overloaded(MsgSender::Visit &v): v(v)
 {
-    if(!this->isSenderIdInit || target != this->senderId) { // later it should be changed to decorator
-        int size = sizeof(this->packet);
-        int tag = static_cast<int>(this->tag);
+
+}
+
+void MsgSender::Visit::Overloaded::operator()(int target)
+{
+    if(!v.isSenderIdInit || target != v.senderId) { // later it should be changed to decorator
+        int size = sizeof(v.packet);
+        int tag = static_cast<int>(v.tag);
         MPI_Send(&size, 1, MPI_INT, target, tag, MPI_COMM_WORLD); // first send size
-        MPI_Send(&this->packet, size, MPI_BYTE, target, tag, MPI_COMM_WORLD); // then send packet(data)
+        MPI_Send(&v.packet, size, MPI_BYTE, target, tag, MPI_COMM_WORLD); // then send packet(data)
     }
 }
 
-void MsgSender::Visit::operator()(std::vector<int> target)
+void MsgSender::Visit::Overloaded::operator()(std::vector<int> target)
 {
     for(int id: target) {
         this->operator()(id);
     }
 }
 
-void MsgSender::Visit::operator()(SpecificTarget target)
+void MsgSender::Visit::Overloaded::operator()(SpecificTarget target)
 {
     switch(target) {
         case SpecificTarget::All:
-            if(this->allTarget.size()) {
+            if(v.allTarget.size()) {
                 this->operator()(allTarget);
             } else {
                 throw std::runtime_error("empty targets");
@@ -73,7 +80,7 @@ void MsgSender::Visit::operator()(SpecificTarget target)
         break;
 
         case SpecificTarget::Self:
-            this->operator()(this->packet.data.getId());
+            this->operator()(v.packet.data.getId());
         break;
     }
 }

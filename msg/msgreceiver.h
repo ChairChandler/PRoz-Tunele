@@ -17,13 +17,18 @@ private:
         int receiverId;
         static inline std::vector<int> allTarget = std::vector<int>();
     public:
-        Visit();
-        Visit(int receiverId, MsgComm tag);
+        explicit Visit();
+        explicit Visit(int receiverId, MsgComm tag);
         Packet getPacket() const;
         static void setAllTarget(std::vector<int> target);
-        void operator()(int target);
-        void operator()(std::vector<int> target);
-        void operator()(SpecificTarget target);
+
+        struct Overloaded {
+            Visit &v;
+            explicit Overloaded(Visit &);
+            void operator()(int target);
+            void operator()(std::vector<int> target);
+            void operator()(SpecificTarget target);
+        } overloaded;
     };
     const Target targetId;
     const int receiverId;

@@ -12,11 +12,22 @@ int main(int argc, char *argv[])
     MPI_Comm_rank(MPI_COMM_WORLD, &id);
     MPI_Comm_size(MPI_COMM_WORLD, &richmansAmount);
 
-    Richman richman(id, richmansAmount, tunnelsAmount, queueCapacity, tunnelCapacity);
-    richman.start();
+    if(id) {
+        Richman richman(id - 1, richmansAmount - 1, tunnelsAmount, queueCapacity, tunnelCapacity);
+        richman.start();
+        while(true);
+    } else {
+        std::vector<char> buff;
+        int size;
+        MPI_Status status;
 
-    while(true) {
-
+        while(true) {
+            MPI_Recv(&size, 1, MPI_INT, MPI_ANY_SOURCE, 3, MPI_COMM_WORLD, &status);
+            buff.resize(size);
+            MPI_Recv(buff.data(), size, MPI_CHAR, status.MPI_SOURCE, 3, MPI_COMM_WORLD, &status);
+            buff.push_back('\0');
+            std::cout << "[" << status.MPI_SOURCE << "] " << buff.data() << std::endl;
+        }
     }
 
     MPI_Finalize();

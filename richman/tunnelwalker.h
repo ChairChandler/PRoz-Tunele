@@ -1,6 +1,6 @@
 #ifndef TUNNELWALKER_H
 #define TUNNELWALKER_H
-#include "runnable.h"
+#include "thread/runnable.h"
 #include "models/place.h"
 #include "models/richmaninfo.h"
 #include "tunnel/tunnel.h"
@@ -14,7 +14,7 @@ class TunnelWalker: public Runnable
     const miliseconds waitTime = miliseconds(500);
     std::atomic<RichmanInfo> &parentData;
     Place place;
-    const std::vector<Tunnel> &tInfo;
+    std::vector<Tunnel> tInfo;
 
     int enterTunnel();
     void wait();

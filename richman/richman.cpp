@@ -9,19 +9,21 @@ Richman::Richman(int id, int richmansAmount, int tunnelsAmount, size_t queueCapa
     dispatcher(info, MsgDispatcher::TunnelMap{
         {earthTunnel.getTunnelId(), std::make_shared<Tunnel>(earthTunnel)},
         {dimTunnel.getTunnelId(), std::make_shared<Tunnel>(dimTunnel)}},
-               richmansAmount)
+               richmansAmount),
+    thWalker(&walker),
+    thDispatcher(&dispatcher)
 {
 
 }
 
 void Richman::start()
 {
-    this->dispatcher.start();
-    this->walker.start();
+    this->thWalker.start();
+    this->thDispatcher.start();
 }
 
 void Richman::stop()
 {
-    this->dispatcher.MsgDispatcher::~MsgDispatcher();
-    this->walker.TunnelWalker::~TunnelWalker();
+    this->thWalker.stop();
+    this->thDispatcher.stop();
 }

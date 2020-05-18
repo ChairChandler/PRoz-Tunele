@@ -25,9 +25,13 @@ private:
         explicit Visit(MsgComm tag, Packet packet);
         explicit Visit(MsgComm tag, Packet packet, int senderId);
         static void setAllTarget(std::vector<int> target);
-        void operator()(int target);
-        void operator()(std::vector<int> target);
-        void operator()(SpecificTarget target);
+        struct Overloaded {
+            Visit &v;
+            explicit Overloaded(Visit &v);
+            void operator()(int target);
+            void operator()(std::vector<int> target);
+            void operator()(SpecificTarget target);
+        } overloaded;
     };
     const bool isSenderIdInit;
     const Target targetId;

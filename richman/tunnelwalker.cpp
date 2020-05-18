@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include "richman.h"
 #include <iostream>
+#include "msg/distributedstream.h"
 
 TunnelWalker::TunnelWalker(std::atomic<RichmanInfo> &parentData, Place startingPlace, const std::vector<Tunnel> &tInfo):
     parentData(parentData), place(startingPlace), tInfo(tInfo)
@@ -13,13 +14,12 @@ TunnelWalker::TunnelWalker(std::atomic<RichmanInfo> &parentData, Place startingP
 
 void TunnelWalker::run()
 {
-    int id = parentData.load().getId();
     while(true) {
-        std::cout << "[" << id << "] " << "Enter tunnel";
+        dcout << "Enter tunnel";
         int tunnel_id = this->enterTunnel();
-        std::cout << "[" << id << "] " << "Exit tunnel";
+        dcout << "Exit tunnel";
         this->exitTunnel(tunnel_id);
-        std::cout << "[" << id << "] " << "Wait";
+        dcout << "Wait";
         this->wait();
     }
 }

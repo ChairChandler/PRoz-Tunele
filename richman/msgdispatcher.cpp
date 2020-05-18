@@ -2,6 +2,8 @@
 #include "msg/msgreceiver.h"
 #include "msg/msgsender.h"
 #include <cmath>
+#include <iostream>
+#include "msg/distributedstream.h"
 
 MsgDispatcher::MsgDispatcher(std::atomic<RichmanInfo> &parentData, const TunnelMap &tunnels, int richmansAmount):
     parentData(parentData),
@@ -19,8 +21,11 @@ void MsgDispatcher::run()
 {
     MsgReceiver recv(this->parentData.load().getId(), SpecificTarget::All);
     while(true) {
+        dcout << "Waiting for msg";
         Packet p = recv.wait();
+        dcout << "Execute op"; while(1);
         this->executeOperation(p);
+        dcout << "Handle self";
         this->handleSelfWalker();
     }
 }

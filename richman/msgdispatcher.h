@@ -1,6 +1,6 @@
 #ifndef MSGDISPATCHER_H
 #define MSGDISPATCHER_H
-#include "runnable.h"
+#include "thread/runnable.h"
 #include "models/richmaninfo.h"
 #include "tunnel/tunnel.h"
 #include "models/packet.h"
