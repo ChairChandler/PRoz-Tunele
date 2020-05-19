@@ -19,10 +19,9 @@ int main(int argc, char *argv[])
         while(true);
     } else {
         while(true) {
-            int src;
-            std::string log;
-            dstream.read(src, log);
-            std::cout << "[" << src << "] " << log << std::endl;
+            dstream.read([](int src, std::string log) {
+                std::cout << "[" << src << "] " << log << std::endl;
+            });
         }
     }
 
