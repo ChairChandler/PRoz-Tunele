@@ -21,11 +21,11 @@ void MsgDispatcher::run()
 {
     MsgReceiver recv(this->parentData.load().getId(), SpecificTarget::All);
     while(true) {
-        dcout << "Waiting for msg";
+        dstream.write("Waiting for msg");
         Packet p = recv.wait();
-        dcout << "Execute op"; while(1);
+        dstream.write("Execute op");
         this->executeOperation(p);
-        dcout << "Handle self";
+        dstream.write("Handle self");
         this->handleSelfWalker();
     }
 }

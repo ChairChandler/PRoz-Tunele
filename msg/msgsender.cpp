@@ -54,10 +54,8 @@ MsgSender::Visit::Overloaded::Overloaded(MsgSender::Visit &v): v(v)
 void MsgSender::Visit::Overloaded::operator()(int target)
 {
     if(!v.isSenderIdInit || target != v.senderId) { // later it should be changed to decorator
-        int size = sizeof(v.packet);
         int tag = static_cast<int>(v.tag);
-        MPI_Send(&size, 1, MPI_INT, target, tag, MPI_COMM_WORLD); // first send size
-        MPI_Send(&v.packet, size, MPI_BYTE, target, tag, MPI_COMM_WORLD); // then send packet(data)
+        MPI_Send(&v.packet, sizeof(Packet), MPI_BYTE, target, tag, MPI_COMM_WORLD); // send packet(data)
     }
 }
 

@@ -1,5 +1,6 @@
 #include <mpi.h>
 #include "richman/richman.h"
+#include "msg/distributedstream.h"
 
 int main(int argc, char *argv[])
 {
@@ -17,16 +18,11 @@ int main(int argc, char *argv[])
         richman.start();
         while(true);
     } else {
-        std::vector<char> buff;
-        int size;
-        MPI_Status status;
-
         while(true) {
-            MPI_Recv(&size, 1, MPI_INT, MPI_ANY_SOURCE, 3, MPI_COMM_WORLD, &status);
-            buff.resize(size);
-            MPI_Recv(buff.data(), size, MPI_CHAR, status.MPI_SOURCE, 3, MPI_COMM_WORLD, &status);
-            buff.push_back('\0');
-            std::cout << "[" << status.MPI_SOURCE << "] " << buff.data() << std::endl;
+            int src;
+            std::string log;
+            dstream.read(src, log);
+            std::cout << "[" << src << "] " << log << std::endl;
         }
     }
 

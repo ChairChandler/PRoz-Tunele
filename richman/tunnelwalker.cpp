@@ -15,11 +15,12 @@ TunnelWalker::TunnelWalker(std::atomic<RichmanInfo> &parentData, Place startingP
 void TunnelWalker::run()
 {
     while(true) {
-        dcout << "Enter tunnel";
+        dstream.write("Enter tunnel");
         int tunnel_id = this->enterTunnel();
-        dcout << "Exit tunnel";
+        this->wait();
+        dstream.write("Exit tunnel");
         this->exitTunnel(tunnel_id);
-        dcout << "Wait";
+        dstream.write("Wait");
         this->wait();
     }
 }
@@ -37,7 +38,7 @@ int TunnelWalker::enterTunnel()
                 int tid = tInfo.getTunnelId();
                 this->parentData.store(this->parentData.load().incrementCounter());
                 walkerSend.sendRequest(Request::Enter, this->parentData, tid);
-                Packet p = walkerRecv.wait(MsgComm::ReplyRecvTag);
+                Packet p = walkerRecv.wait(MsgComm::ReplyRecvTag); dstream.write("RES"); //!!! ERROR
                 switch(std::get<Reply>(p.type)) {
                     case Reply::Enter:
                         return tid;

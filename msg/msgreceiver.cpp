@@ -55,15 +55,11 @@ MsgReceiver::Visit::Overloaded::Overloaded(MsgReceiver::Visit &v): v(v)
 void MsgReceiver::Visit::Overloaded::operator()(int target)
 {
     Packet packet;
-    int size;
     if(v.anyTag) {
-        MPI_Status status;
-        MPI_Recv(&size, 1, MPI_INT, target, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-        MPI_Recv(&packet, size, MPI_BYTE, target, status.MPI_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(&packet, sizeof(Packet), MPI_BYTE, target, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     } else {
         int tag = static_cast<int>(v.tag);
-        MPI_Recv(&size, 1, MPI_INT, target, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Recv(&packet, size, MPI_BYTE, target, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(&packet, sizeof(Packet), MPI_BYTE, target, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
     v.packet = packet;
 }
@@ -72,16 +68,14 @@ void MsgReceiver::Visit::Overloaded::operator()(std::vector<int> target)
 {
     auto iter = [&target](int tag)
     {
-        MPI_Request request;
         MPI_Status status;
         Packet packet;
-        int size, flag;
+        int flag;
         while(true) {
             for(int id: target) {
-                MPI_Irecv(&size, 1, MPI_INT, id, tag, MPI_COMM_WORLD, &request);
-                MPI_Test(&request, &flag, &status);
+                MPI_Iprobe(id, tag, MPI_COMM_WORLD, &flag, &status);
                 if(flag) {
-                    MPI_Recv(&packet, size, MPI_BYTE, id, status.MPI_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    MPI_Recv(&packet, sizeof(Packet), MPI_BYTE, id, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                     return packet;
                 }
             }
