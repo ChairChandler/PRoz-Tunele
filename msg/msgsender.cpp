@@ -2,12 +2,19 @@
 #include <stdexcept>
 #include <mpi.h>
 
-MsgSender::MsgSender(Target targetId): isSenderIdInit(false), targetId(targetId), senderId()
+#include "appdebug.h"
+#ifdef APP_DEBUG_COMMUNICATION
+#include "distributedstream.h"
+#endif
+
+MsgSender::MsgSender(Target targetId, const std::string &senderName):
+    isSenderIdInit(false), targetId(targetId), senderId(), senderName(senderName)
 {
 
 }
 
-MsgSender::MsgSender(int senderId, MsgSender::Target targetId): isSenderIdInit(true), targetId(targetId), senderId(senderId)
+MsgSender::MsgSender(int senderId, MsgSender::Target targetId, const std::string &senderName):
+    isSenderIdInit(true), targetId(targetId), senderId(senderId), senderName(senderName)
 {
 
 }
@@ -20,23 +27,23 @@ void MsgSender::setAllTarget(std::vector<int> target)
 void MsgSender::sendRequest(Request msg, RichmanInfo payload, int tunnel_id)
 {
     Packet p(msg, payload, tunnel_id);
-    std::visit(Visit(MsgComm::RequestRecvTag, p).overloaded, this->targetId);
+    std::visit(Visit(MsgComm::RequestRecvTag, p, this->senderName).overloaded, this->targetId);
 }
 
 void MsgSender::sendReply(Reply msg, RichmanInfo payload, int tunnel_id)
 {
     Packet p(msg, payload, tunnel_id);
-    std::visit(Visit(MsgComm::ReplyRecvTag, p).overloaded, this->targetId);
+    std::visit(Visit(MsgComm::ReplyRecvTag, p, this->senderName).overloaded, this->targetId);
 }
 
-MsgSender::Visit::Visit(MsgComm tag, Packet packet):
-    isSenderIdInit(false), senderId(), tag(tag), packet(packet), overloaded(*this)
+MsgSender::Visit::Visit(MsgComm tag, Packet packet, const std::string &senderName):
+    isSenderIdInit(false), senderId(), tag(tag), packet(packet), senderName(senderName), overloaded(*this)
 {
 
 }
 
-MsgSender::Visit::Visit(MsgComm tag, Packet packet, int senderId):
-    isSenderIdInit(true), senderId(senderId), tag(tag), packet(packet), overloaded(*this)
+MsgSender::Visit::Visit(MsgComm tag, Packet packet, int senderId, const std::string &senderName):
+    isSenderIdInit(true), senderId(senderId), tag(tag), packet(packet), senderName(senderName), overloaded(*this)
 {
 
 }
@@ -55,6 +62,10 @@ void MsgSender::Visit::Overloaded::operator()(int target)
 {
     if(!v.isSenderIdInit || target != v.senderId) { // later it should be changed to decorator
         int tag = static_cast<int>(v.tag);
+        #ifdef APP_DEBUG_COMMUNICATION
+            dstream.write(v.senderName, "Send packet " + describe(v.packet.type) +
+                          " to " + std::to_string(target) + " with tag " + describe(v.tag));
+        #endif
         MPI_Send(&v.packet, sizeof(Packet), MPI_BYTE, target, tag, MPI_COMM_WORLD); // send packet(data)
     }
 }
@@ -72,8 +83,6 @@ void MsgSender::Visit::Overloaded::operator()(SpecificTarget target)
         case SpecificTarget::All:
             if(v.allTarget.size()) {
                 this->operator()(allTarget);
-            } else {
-                throw std::runtime_error("empty targets");
             }
         break;
 

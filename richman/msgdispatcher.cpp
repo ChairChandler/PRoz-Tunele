@@ -5,6 +5,8 @@
 #include <iostream>
 #include "msg/distributedstream.h"
 
+#include "appdebug.h"
+
 MsgDispatcher::MsgDispatcher(std::atomic<RichmanInfo> &parentData, const TunnelMap &tunnels, int richmansAmount):
     parentData(parentData),
     tunnels(tunnels),
@@ -19,13 +21,15 @@ MsgDispatcher::MsgDispatcher(std::atomic<RichmanInfo> &parentData, const TunnelM
 
 void MsgDispatcher::run()
 {
-    MsgReceiver recv(this->parentData.load().getId(), SpecificTarget::All);
+    MsgReceiver recv(this->parentData.load().getId(), SpecificTarget::All, this->name);
     while(true) {
-        dstream.write("Waiting for msg");
+        this->writeStream("Waiting for msg");
         Packet p = recv.wait();
-        dstream.write("Execute op");
+
+        this->writeStream("Execute operation");
         this->executeOperation(p);
-        dstream.write("Handle self");
+
+        this->writeStream("Handle self");
         this->handleSelfWalker();
     }
 }
@@ -55,30 +59,39 @@ void MsgDispatcher::handleMsg(Request type, RichmanInfo data, int tunnel_id)
     Tunnel &tunnel = *this->tunnels[tunnel_id].get();
     const int expectant_id = data.getId();
     const int expectant_counter = data.getCounter();
-    static const int self_id = this->parentData.load().getId();
+    thread_local const int self_id = this->parentData.load().getId();
 
-    static MsgSender anotherIdSender(self_id, SpecificTarget::All);
+    thread_local MsgSender anotherIdSender(self_id, SpecificTarget::All, this->name);
 
     auto self = this->parentData.load();
     self.setCounter(std::max(self.getCounter(), expectant_counter));
     self.incrementCounter();
     this->parentData.store(self);
 
+    this->writeStream("Clock after received = " + std::to_string(self.getCounter()));
+
     switch(type) {
         case Request::Enter:
             if(tunnel.isQueueFilled()) {
                 this->parentData.store(this->parentData.load().incrementCounter());
-                MsgSender(expectant_id).sendReply(Reply::Deny, this->parentData, tunnel_id);
+
+                this->writeStream("Clock after sent = " + std::to_string(this->parentData.load().getCounter()));
+                MsgSender(expectant_id, this->name).sendReply(Reply::Deny, this->parentData, tunnel_id);
             } else {
                 tunnel.appendQueue(data).sortQueueByTime();
                 if(expectant_id != self_id) {
                     if(tunnel.isFirstInQueue(data) && !tunnel.isTunnelFilled()) {
                         tunnel.insertTunnel(expectant_id);
                         this->parentData.store(this->parentData.load().incrementCounter());
-                        MsgSender(expectant_id).sendReply(Reply::Enter, this->parentData, tunnel_id);
+
+                        this->writeStream("Clock after sent = " + std::to_string(this->parentData.load().getCounter()));
+                        MsgSender(expectant_id, this->name).sendReply(Reply::Enter, this->parentData, tunnel_id);
                     }
                 } else {
                     this->selfWalkerTunnelId = tunnel_id;
+                    this->parentData.store(this->parentData.load().incrementCounter());
+
+                    this->writeStream("Clock after sent = " + std::to_string(this->parentData.load().getCounter()));
                     anotherIdSender.sendRequest(Request::Enter, this->parentData, tunnel_id);
                 }
             }
@@ -88,14 +101,22 @@ void MsgDispatcher::handleMsg(Request type, RichmanInfo data, int tunnel_id)
             if(expectant_id != self_id) {
                 tunnel.removeFromTunnel(expectant_id);
                 this->parentData.store(this->parentData.load().incrementCounter());
-                MsgSender(expectant_id).sendReply(Reply::Exit, this->parentData, tunnel_id);
+
+                this->writeStream("Clock after sent = " + std::to_string(this->parentData.load().getCounter()));
+                MsgSender(expectant_id, this->name).sendReply(Reply::Exit, this->parentData, tunnel_id);
+
                 auto [first, ok] = tunnel.getFromQueue(0);
                 if(ok) {
                     this->parentData.store(this->parentData.load().incrementCounter());
-                    MsgSender(first.getId()).sendReply(Reply::Enter, this->parentData, tunnel_id);
+
+                    this->writeStream("Clock after sent = " + std::to_string(this->parentData.load().getCounter()));
+                    MsgSender(first.getId(), this->name).sendReply(Reply::Enter, this->parentData, tunnel_id);
                 }
             } else {
                 this->selfWalkerTunnelId = tunnel_id;
+                this->parentData.store(this->parentData.load().incrementCounter());
+
+                this->writeStream("Clock after sent = " + std::to_string(this->parentData.load().getCounter()));
                 anotherIdSender.sendRequest(Request::Exit, this->parentData, tunnel_id);
             }
         break;
@@ -110,6 +131,8 @@ void MsgDispatcher::handleMsg(Reply type, RichmanInfo data)
     self.setCounter(std::max(self.getCounter(), expectant_counter));
     self.incrementCounter();
     this->parentData.store(self);
+
+    this->writeStream("Clock after received = " + std::to_string(self.getCounter()));
 
     switch(type) {
         case Reply::Enter:
@@ -128,9 +151,9 @@ void MsgDispatcher::handleMsg(Reply type, RichmanInfo data)
 
 void MsgDispatcher::handleSelfWalker()
 {
-    static const int selfId = this->parentData.load().getId();
-    static MsgSender walker(selfId);
-    static const int amountSenders = this->richmansAmount - 1;
+    thread_local const int selfId = this->parentData.load().getId();
+    thread_local MsgSender walker(selfId, this->name);
+    thread_local const int amountSenders = this->richmansAmount - 1;
 
     Tunnel &tunnel = *this->tunnels[this->selfWalkerTunnelId].get();
 
@@ -147,7 +170,7 @@ void MsgDispatcher::handleSelfWalker()
                 tunnel.removeFromQueue(selfId).insertTunnel(selfId);
                 walker.sendReply(Reply::Enter, this->parentData, this->selfWalkerTunnelId);
             } else {
-                throw std::runtime_error("invalid queque state");
+                throw std::runtime_error("invalid queque state " + std::string(__FILE__) + " " +std::to_string(__LINE__));
             }
         }
 
@@ -158,4 +181,9 @@ void MsgDispatcher::handleSelfWalker()
         this->parentData.store(this->parentData.load().incrementCounter());
         walker.sendReply(Reply::Deny, this->parentData, this->selfWalkerTunnelId);
     }
+}
+
+void MsgDispatcher::writeStream(const std::string &m)
+{
+    dstream.write(this->name, m);
 }

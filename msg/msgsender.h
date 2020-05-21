@@ -20,11 +20,14 @@ private:
         const int senderId;
         const MsgComm tag;
         const Packet packet;
+        const std::string senderName;
         static inline std::vector<int> allTarget = std::vector<int>();
     public:
-        explicit Visit(MsgComm tag, Packet packet);
-        explicit Visit(MsgComm tag, Packet packet, int senderId);
+        explicit Visit(MsgComm tag, Packet packet, const std::string &senderName);
+        explicit Visit(MsgComm tag, Packet packet, int senderId, const std::string &senderName);
+
         static void setAllTarget(std::vector<int> target);
+
         struct Overloaded {
             Visit &v;
             explicit Overloaded(Visit &v);
@@ -33,13 +36,17 @@ private:
             void operator()(SpecificTarget target);
         } overloaded;
     };
+
     const bool isSenderIdInit;
     const Target targetId;
     const int senderId;
+    const std::string senderName;
+
     void send(Packet packet, int dest);
 public:
-    explicit MsgSender(Target targetId);
-    explicit MsgSender(int senderId, Target targetId);
+    explicit MsgSender(Target targetId, const std::string &senderName);
+    explicit MsgSender(int senderId, Target targetId, const std::string &senderName);
+
     static void setAllTarget(std::vector<int> target);
     void sendRequest(Request msg, RichmanInfo payload, int tunnel_id);
     void sendReply(Reply msg, RichmanInfo payload, int tunnel_id);

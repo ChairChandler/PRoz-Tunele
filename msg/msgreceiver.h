@@ -15,10 +15,11 @@ private:
         MsgComm tag;
         Packet packet;
         int receiverId;
+        std::string receiverName;
         static inline std::vector<int> allTarget = std::vector<int>();
     public:
-        explicit Visit();
-        explicit Visit(int receiverId, MsgComm tag);
+        explicit Visit(std::string receiverName);
+        explicit Visit(int receiverId, MsgComm tag, std::string receiverName);
         Packet getPacket() const;
         static void setAllTarget(std::vector<int> target);
 
@@ -32,8 +33,9 @@ private:
     };
     const Target targetId;
     const int receiverId;
+    const std::string receiverName;
 public:
-    explicit MsgReceiver(int receiverId, Target targetId);
+    explicit MsgReceiver(int receiverId, Target targetId, const std::string &receiverName);
     static void setAllTarget(std::vector<int> target);
     Packet wait();
     Packet wait(MsgComm tag);

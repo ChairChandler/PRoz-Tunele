@@ -18,10 +18,14 @@ class MsgDispatcher: public Runnable
     int selfWalkerPositiveResponse = 0;
     int selfWalkerNegativeResponse = 0;
 
+    const std::string name = "D";
+
     void handleMsg(Request type, RichmanInfo data, int tunnel_id);
     void handleMsg(Reply type, RichmanInfo data);
     void executeOperation(Packet packet);
     void handleSelfWalker();
+
+    void writeStream(const std::string &m);
 public:
     using TunnelPtr = std::shared_ptr<Tunnel>;
     using TunnelMap = std::map<int, TunnelPtr>;

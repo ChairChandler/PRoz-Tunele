@@ -18,7 +18,7 @@ int Tunnel::getTunnelId() const
 
 bool Tunnel::isQueueFilled() const
 {
-    return this->queue.size() < this->queue.max_size();
+    return this->queue.size() >= this->queue.max_size();
 }
 
 Tunnel& Tunnel::appendQueue(const RichmanInfo &info)

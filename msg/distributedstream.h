@@ -9,8 +9,11 @@ public:
     static constexpr int PacketSize = 1024;
     using Packet = std::array<char, PacketSize>;
     using Callback = void(*)(int id, std::string m);
+    int receiver = 0;
 
+    void setReceiver(int recvr);
     DistributedStream& write(const std::string &m);
+    DistributedStream& write(const std::string &who, const std::string &m);
     DistributedStream& read(Callback cb);
 private:
     const int SENDING_TAG = 1000;

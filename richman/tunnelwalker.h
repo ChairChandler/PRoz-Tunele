@@ -16,9 +16,13 @@ class TunnelWalker: public Runnable
     Place place;
     std::vector<Tunnel> tInfo;
 
+    const std::string name = "W";
+
     int enterTunnel();
     void wait();
     void exitTunnel(int tunnel_id);
+
+    void writeStream(const std::string &m);
 public:
     explicit TunnelWalker(std::atomic<RichmanInfo> &parentData, Place startingPlace, const std::vector<Tunnel> &tInfo);
     void run() override;

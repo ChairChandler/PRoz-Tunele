@@ -20,6 +20,7 @@ SOURCES += \
         tunnel/tunnel.cpp
 
 HEADERS += \
+    appdebug.h \
     models/packet.h \
     models/place.h \
     models/reply.h \

@@ -1,10 +1,13 @@
 #include <mpi.h>
 #include "richman/richman.h"
 #include "msg/distributedstream.h"
+#include <chrono>
 
 int main(int argc, char *argv[])
 {
-    MPI_Init(&argc, &argv);
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    int provided;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
     int id, richmansAmount;
     //const int richmanGroupSize = 1;
@@ -13,8 +16,10 @@ int main(int argc, char *argv[])
     MPI_Comm_rank(MPI_COMM_WORLD, &id);
     MPI_Comm_size(MPI_COMM_WORLD, &richmansAmount);
 
-    if(id) {
-        Richman richman(id - 1, richmansAmount - 1, tunnelsAmount, queueCapacity, tunnelCapacity);
+    dstream.setReceiver(richmansAmount - 1);
+
+    if(id < (richmansAmount - 1)) {
+        Richman richman(id, richmansAmount - 1, tunnelsAmount, queueCapacity, tunnelCapacity);
         richman.start();
         while(true);
     } else {

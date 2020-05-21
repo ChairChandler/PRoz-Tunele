@@ -25,4 +25,18 @@ struct Packet
     }
 };
 
+inline std::string describe(const std::variant<Request, Reply> &v)
+{
+    std::string d;
+    struct _ {
+       std::string &d;
+       _(std::string&d): d(d) {}
+       void operator()(Request r) {d = describe(r);}
+       void operator()(Reply r) {d = describe(r);}
+    };
+
+    std::visit(_(d), v);
+    return d;
+}
+
 #endif // PACKET_H

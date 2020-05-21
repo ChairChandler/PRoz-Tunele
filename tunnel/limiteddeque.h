@@ -16,7 +16,7 @@ class LimitedDeque: public std::deque<T>
     void check_size()
     {
         if(this->size() + 1 > this->max_size()) {
-            throw std::runtime_error("maximum size exceeded");
+            throw std::runtime_error("maximum size exceeded " + std::string(__FILE__) + " " +std::to_string(__LINE__));
         }
     }
 
