@@ -5,7 +5,7 @@ RichmanInfo::RichmanInfo(int id): id(id)
 
 }
 
-RichmanInfo& RichmanInfo::incrementCounter()
+RichmanInfo &RichmanInfo::incrementCounter()
 {
     this->counter++;
     return *this;

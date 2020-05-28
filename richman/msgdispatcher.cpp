@@ -8,51 +8,42 @@
 
 #include "utils/appdebug.h"
 
-MsgDispatcher::MsgDispatcher(std::atomic<RichmanInfo> &parentData, const TunnelMap &tunnels, int richmansAmount):
-    parentData(parentData),
-    tunnels(tunnels),
-    richmansAmount(richmansAmount)
+MsgDispatcher::MsgDispatcher(AtomicRichmanInfo &parentData, const TunnelMap &tunnels, int richmansAmount):
+    parentData(parentData), tunnels(tunnels), richmansAmount(richmansAmount)
 {
-    std::vector<int> targets(richmansAmount);
+    this->allTargets.resize(richmansAmount);
     for(int id=0; id < richmansAmount; id++) {
-        targets[id] = id; // self is shared between threads
+        this->allTargets[id] = id; // include self thread (walker + dispatcher)
     }
-    MsgReceiver::setAllTarget(targets);
+
 }
 
 void MsgDispatcher::run()
 {
-    MsgReceiver recv(this->parentData.load().getId(), SpecificTarget::All, this->name);
+    MsgReceiver recv(this->parentData.getId(), this->allTargets);
     while(true) {
-        this->writeStream("Waiting for msg");
+        dstream.write("Waiting for msg");
         Packet p = recv.wait();
 
-        this->writeStream("Execute operation");
+        dstream.write("Execute operation");
         this->executeOperation(p);
 
-        this->writeStream("Handle self");
+        dstream.write("Handle self");
         this->handleSelfWalker();
     }
 }
 
-void MsgDispatcher::executeOperation(Packet packet)
+void MsgDispatcher::executeOperation(const Packet &packet)
 {
-    struct Visit {
-        MsgDispatcher &ds;
-        Packet &p;
-        Visit(MsgDispatcher &ds, Packet &p): ds(ds), p(p) {}
-        void operator()(Request r) {
-            ds.handleMsg(r, p.getData(), p.getTunnel_id());
-        }
-        void operator()(Reply r) {
-            ds.handleMsg(r, p.getData());
-        }
-    };
-
-    std::visit(Visit(*this, packet), packet.getType());
+    // decode operation type
+    packet.getCmd([&packet, this](MsgComm::Request req) {
+        this->handleRequest(packet, req);
+    }, [&packet, this](MsgComm::Response res) {
+        this->handleResponse(packet, res);
+    });
 }
 
-void MsgDispatcher::handleMsg(Request type, RichmanInfo data, int tunnel_id)
+void MsgDispatcher::handleRequest(const Packet &packet, MsgComm::Request req)
 {
     Tunnel &tunnel = *this->tunnels[tunnel_id].get();
     const int expectant_id = data.getId();
@@ -121,27 +112,25 @@ void MsgDispatcher::handleMsg(Request type, RichmanInfo data, int tunnel_id)
     }
 }
 
-void MsgDispatcher::handleMsg(Reply type, RichmanInfo data)
+void MsgDispatcher::handleResponse(const Packet &packet, MsgComm::Response res)
 {
-    const int expectant_counter = data.getCounter();
+    const int expectant_counter = packet.getData().getCounter();
 
-    auto self = this->parentData.load();
-    self.setCounter(std::max(self.getCounter(), expectant_counter));
-    self.incrementCounter();
-    this->parentData.store(self);
+    int counter = std::max(this->parentData.getCounter(), expectant_counter);
+    this->parentData.setCounter(counter + 1);
 
-    this->writeStream("Clock after received = " + std::to_string(self.getCounter()));
+    dstream.write("Clock after received = " + std::to_string(counter + 1));
 
-    switch(type) {
-        case Reply::Enter:
+    switch(res) {
+        case MsgComm::Response::Enter:
             this->selfWalkerPositiveResponse++;
         break;
 
-        case Reply::Exit:
+        case MsgComm::Response::Exit:
             this->selfWalkerPositiveResponse++;
         break;
 
-        case Reply::Deny:
+        case MsgComm::Response::Deny:
             this->selfWalkerNegativeResponse++;
         break;
     }
@@ -179,9 +168,4 @@ void MsgDispatcher::handleSelfWalker()
         this->parentData.store(this->parentData.load().incrementCounter());
         walker.send(MsgCommResponse(MsgComm::ResDispatcherToWalker, Reply::Deny), this->parentData, this->selfWalkerTunnelId);
     }
-}
-
-void MsgDispatcher::writeStream(const std::string &m)
-{
-    dstream.write(this->name, m);
 }

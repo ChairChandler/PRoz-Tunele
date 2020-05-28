@@ -4,32 +4,31 @@
 #include "models/richmaninfo.h"
 #include "tunnel/tunnel.h"
 #include "models/packet.h"
-#include <atomic>
+#include "richman.h"
 #include <map>
 #include <memory>
 
 class MsgDispatcher: public Runnable
 {
-    std::atomic<RichmanInfo> &parentData;
-    std::map<int, std::shared_ptr<Tunnel>> tunnels;
+public:
+    using TunnelPtr = std::shared_ptr<Tunnel>;
+    using TunnelMap = std::map<int, TunnelPtr>;
+private:
+    AtomicRichmanInfo &parentData;
+    TunnelMap tunnels;
     const int richmansAmount;
+    std::vector<int> allTargets;
 
     int selfWalkerTunnelId;
     int selfWalkerPositiveResponse = 0;
     int selfWalkerNegativeResponse = 0;
 
-    const std::string name = "D";
-
-    void handleMsg(Request type, RichmanInfo data, int tunnel_id);
-    void handleMsg(Reply type, RichmanInfo data);
-    void executeOperation(Packet packet);
+    void handleRequest(const Packet &packet, MsgComm::Request req);
+    void handleResponse(const Packet &packet, MsgComm::Response res);
+    void executeOperation(const Packet &packet);
     void handleSelfWalker();
-
-    void writeStream(const std::string &m);
 public:
-    using TunnelPtr = std::shared_ptr<Tunnel>;
-    using TunnelMap = std::map<int, TunnelPtr>;
-    explicit MsgDispatcher(std::atomic<RichmanInfo> &parentData, const TunnelMap &tunnels, int richmansAmount);
+    explicit MsgDispatcher(AtomicRichmanInfo &parentData, const TunnelMap &tunnels, int richmansAmount);
     void run() override;
 };
 
