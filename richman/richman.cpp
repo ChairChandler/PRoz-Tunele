@@ -1,7 +1,7 @@
 #include "richman.h"
 #include <memory>
 
-Richman::Richman(int id, int richmansAmount, int tunnelsAmount, size_t queueCapacity, size_t tunnelCapacity):
+Richman::Richman(int id, int richmansAmount, size_t queueCapacity, size_t tunnelCapacity):
     info(RichmanInfo(id)),
     earthTunnel(0, queueCapacity, tunnelCapacity, Place::Earth),
     dimTunnel(1, queueCapacity, tunnelCapacity, Place::Dimension),

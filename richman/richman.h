@@ -8,7 +8,6 @@
 
 class Richman
 {
-private:
     std::atomic<RichmanInfo> info;
     Tunnel earthTunnel, dimTunnel;
     TunnelWalker walker;
@@ -16,7 +15,7 @@ private:
     RunnableThread thWalker;
     RunnableThread thDispatcher;
 public:
-    explicit Richman(int id, int richmansAmount, int tunnelsAmount,
+    explicit Richman(int id, int richmansAmount,
                      size_t queueCapacity, size_t tunnelCapacity);
     void start();
     void stop();

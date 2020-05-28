@@ -1,10 +1,5 @@
 #include "richmaninfo.h"
 
-RichmanInfo::RichmanInfo()
-{
-
-}
-
 RichmanInfo::RichmanInfo(int id): id(id)
 {
 

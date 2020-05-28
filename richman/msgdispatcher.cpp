@@ -1,11 +1,12 @@
 #include "msgdispatcher.h"
 #include "msg/msgreceiver.h"
 #include "msg/msgsender.h"
+#include "models/msgcomm.h"
 #include <cmath>
 #include <iostream>
-#include "msg/distributedstream.h"
+#include "utils/distributedstream.h"
 
-#include "appdebug.h"
+#include "utils/appdebug.h"
 
 MsgDispatcher::MsgDispatcher(std::atomic<RichmanInfo> &parentData, const TunnelMap &tunnels, int richmansAmount):
     parentData(parentData),
@@ -36,22 +37,19 @@ void MsgDispatcher::run()
 
 void MsgDispatcher::executeOperation(Packet packet)
 {
-    struct Visit
-    {
+    struct Visit {
         MsgDispatcher &ds;
         Packet &p;
         Visit(MsgDispatcher &ds, Packet &p): ds(ds), p(p) {}
-        void operator()(Request r)
-        {
-            ds.handleMsg(r, p.data, p.tunnel_id);
+        void operator()(Request r) {
+            ds.handleMsg(r, p.getData(), p.getTunnel_id());
         }
-        void operator()(Reply r)
-        {
-            ds.handleMsg(r, p.data);
+        void operator()(Reply r) {
+            ds.handleMsg(r, p.getData());
         }
     };
 
-    std::visit(Visit(*this, packet), packet.type);
+    std::visit(Visit(*this, packet), packet.getType());
 }
 
 void MsgDispatcher::handleMsg(Request type, RichmanInfo data, int tunnel_id)
@@ -163,12 +161,12 @@ void MsgDispatcher::handleSelfWalker()
 
         if(tunnel.isInsideTunnel(selfId)) {
             tunnel.removeFromTunnel(selfId);
-            walker.sendReply(Reply::Exit, this->parentData, this->selfWalkerTunnelId);
+            walker.send(MsgCommResponse(MsgComm::ResDispatcherToWalker, Reply::Exit), this->parentData, this->selfWalkerTunnelId);
         } else {
             auto [first, ok] = tunnel.getFromQueue(0);
             if(ok && first.getId() == selfId) {
                 tunnel.removeFromQueue(selfId).insertTunnel(selfId);
-                walker.sendReply(Reply::Enter, this->parentData, this->selfWalkerTunnelId);
+                walker.send(MsgCommResponse(MsgComm::ResDispatcherToWalker, Reply::Enter), this->parentData, this->selfWalkerTunnelId);
             } else {
                 throw std::runtime_error("invalid queque state " + std::string(__FILE__) + " " +std::to_string(__LINE__));
             }
@@ -179,7 +177,7 @@ void MsgDispatcher::handleSelfWalker()
         this->selfWalkerPositiveResponse = 0;
         tunnel.removeFromQueue(selfId);
         this->parentData.store(this->parentData.load().incrementCounter());
-        walker.sendReply(Reply::Deny, this->parentData, this->selfWalkerTunnelId);
+        walker.send(MsgCommResponse(MsgComm::ResDispatcherToWalker, Reply::Deny), this->parentData, this->selfWalkerTunnelId);
     }
 }
 

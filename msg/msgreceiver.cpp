@@ -1,89 +1,80 @@
 #include "msgreceiver.h"
 #include <mpi.h>
 
-#include "appdebug.h"
+#include "utils/appdebug.h"
 #ifdef APP_DEBUG_COMMUNICATION
-#include "distributedstream.h"
+#include "utils/distributedstream.h"
 #endif
 
-MsgReceiver::MsgReceiver(int receiverId, MsgReceiver::Target targetId, const std::string &receiverName):
-    targetId(targetId), receiverId(receiverId), receiverName(receiverName)
+MsgReceiver::MsgReceiver(int receiverId, MsgReceiver::Target targetId):
+    target_id(targetId), receiver_id(receiverId)
 {
 
-}
-
-void MsgReceiver::setAllTarget(std::vector<int> target)
-{
-    Visit::setAllTarget(target);
 }
 
 Packet MsgReceiver::wait()
 {
-    Visit v(this->receiverName);
-    std::visit(v.overloaded, this->targetId);
-    return v.getPacket();
+    this->sourceTag = MsgComm::MsgSourceTag::Unknown;
+    std::visit(this, this->target_id);
+    return this->packetToReceive;
 }
 
-Packet MsgReceiver::wait(MsgComm tag)
+Packet MsgReceiver::wait(MsgComm::MsgSourceTag tag)
 {
-    Visit v(this->receiverId, tag, this->receiverName);
-    std::visit(v.overloaded, this->targetId);
-    return v.getPacket();
+    this->sourceTag = tag;
+    std::visit(this, this->target_id);
+    return this->packetToReceive;
 }
 
-MsgReceiver::Visit::Visit(std::string receiverName): anyTag(true), receiverName(receiverName), overloaded(*this)
-{
-
-}
-
-MsgReceiver::Visit::Visit(int receiverId, MsgComm tag, std::string receiverName):
-    anyTag(false), tag(tag), receiverId(receiverId), receiverName(receiverName), overloaded(*this)
-{
-
-}
-
-Packet MsgReceiver::Visit::getPacket() const
-{
-    return this->packet;
-}
-
-void MsgReceiver::Visit::setAllTarget(std::vector<int> target)
-{
-    Visit::allTarget = target;
-}
-
-MsgReceiver::Visit::Overloaded::Overloaded(MsgReceiver::Visit &v): v(v)
-{
-
-}
-
-void MsgReceiver::Visit::Overloaded::operator()(int target)
+void MsgReceiver::operator()(int target)
 {
     Packet packet;
-    if(v.anyTag) {
+    if(this->sourceTag == MsgComm::MsgSourceTag::Unknown) {
         #ifdef APP_DEBUG_COMMUNICATION
-            dstream.write(v.receiverName, "Waiting for packet from " + std::to_string(target) + " with tag any");
+            dstream.write("SOURCE[UNKNOWN] RECEIVER[" + std::to_string(this->receiver_id) + "]");
         #endif
         MPI_Recv(&packet, sizeof(Packet), MPI_BYTE, target, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         #ifdef APP_DEBUG_COMMUNICATION
-            dstream.write(v.receiverName, "Packet " + describe(packet.type) +
-                          " received from " + std::to_string(target) + " with tag any");
+            bool isRequest;
+            std::string action;
+            packet.getCmd(
+                        [&action, &isRequest](MsgComm::Request req){action = describe(req); isRequest = true;},
+                        [&action, &isRequest](MsgComm::Response res){action = describe(res); isRequest = false;});
+
+            dstream.write("PACKET_NO[" + std::to_string(packet.getPacketNo()) + "] " +
+                          "SOURCE[UNKNOWN] " +
+                          std::string((isRequest ? "RECEIVE[REQUEST] " : "RECEIVE[RESPONSE] ")) +
+                          "SENDER[" + describe(packet.getSender()) + ", " + std::to_string(target) + "] " +
+                          "RECEIVER[" + describe(packet.getReceiver()) + ", " + std::to_string(this->receiver_id) + "] " +
+                          "ACTION[" + action + "]");
         #endif
     } else {
-        int tag = static_cast<int>(v.tag);
+        int tag = static_cast<int>(this->sourceTag);
+
         #ifdef APP_DEBUG_COMMUNICATION
-            dstream.write(v.receiverName, "Waiting for packet from " + std::to_string(target) + " with tag " + describe(v.tag));
+            dstream.write("SOURCE[" + describe(this->sourceTag) + "] RECEIVER[" + std::to_string(this->receiver_id) + "]");
         #endif
         MPI_Recv(&packet, sizeof(Packet), MPI_BYTE, target, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         #ifdef APP_DEBUG_COMMUNICATION
-            dstream.write(v.receiverName, "Packet " + describe(packet.type) +
-                          " received from " + std::to_string(target) + " with tag " + describe(v.tag));
+            bool isRequest;
+            std::string action;
+            packet.getCmd(
+                        [&action, &isRequest](MsgComm::Request req){action = describe(req); isRequest = true;},
+                        [&action, &isRequest](MsgComm::Response res){action = describe(res); isRequest = false;});
+
+            dstream.write("PACKET_NO[" + std::to_string(packet.getPacketNo()) + "] " +
+                          "SOURCE[" + describe(this->sourceTag) + "] " +
+                          std::string((isRequest ? "RECEIVE[REQUEST] " : "RECEIVE[RESPONSE] ")) +
+                          "SENDER[" + describe(packet.getSender()) + ", " + std::to_string(target) + "] " +
+                          "RECEIVER[" + describe(packet.getReceiver()) + ", " + std::to_string(this->receiver_id) + "] " +
+                          "ACTION[" + action + "]");
         #endif
+
     }
-    v.packet = packet;
+    this->packetToReceive = packet;
 }
 
-void MsgReceiver::Visit::Overloaded::operator()(std::vector<int> target)
+void MsgReceiver::operator()(std::vector<int> target)
 {
     auto iter = [this, &target](int tag)
     {
@@ -96,8 +87,18 @@ void MsgReceiver::Visit::Overloaded::operator()(std::vector<int> target)
                 if(flag) {
                     MPI_Recv(&packet, sizeof(Packet), MPI_BYTE, id, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                     #ifdef APP_DEBUG_COMMUNICATION
-                        dstream.write(v.receiverName, "Received packet " + describe(packet.type) + " from " + std::to_string(id) + " with tag " +
-                                      (tag > -1 ? describe(v.tag) : "any"));
+                        bool isRequest;
+                        std::string action;
+                        packet.getCmd(
+                                    [&action, &isRequest](MsgComm::Request req){action = describe(req); isRequest = true;},
+                                    [&action, &isRequest](MsgComm::Response res){action = describe(res); isRequest = false;});
+
+                        dstream.write("PACKET_NO[" + std::to_string(packet.getPacketNo()) + "] " +
+                                      "SOURCE[" + describe(this->sourceTag) + "] " +
+                                      std::string((isRequest ? "RECEIVE[REQUEST] " : "RECEIVE[RESPONSE] ")) +
+                                      "SENDER[" + describe(packet.getSender()) + ", " + std::to_string(id) + "] " +
+                                      "RECEIVER[" + describe(packet.getReceiver()) + ", " + std::to_string(this->receiver_id) + "] " +
+                                      "ACTION[" + action + "]");
                     #endif
                     return packet;
                 }
@@ -105,29 +106,26 @@ void MsgReceiver::Visit::Overloaded::operator()(std::vector<int> target)
         }
     };
 
-    if(v.anyTag) {
-    #ifdef APP_DEBUG_COMMUNICATION
-        dstream.write(v.receiverName, "Waiting for packet from any with tag any");
-    #endif
-        v.packet = iter(MPI_ANY_TAG);
+    if(this->sourceTag == MsgComm::MsgSourceTag::Unknown) {
+        #ifdef APP_DEBUG_COMMUNICATION
+            dstream.write("SOURCE[UNKNOWN] RECEIVER[" + std::to_string(this->receiver_id) + "]");
+        #endif
+        this->packetToReceive = iter(MPI_ANY_TAG);
     } else {
-        int tag = static_cast<int>(v.tag);
-    #ifdef APP_DEBUG_COMMUNICATION
-        dstream.write(v.receiverName, "Waiting for packet from any with tag " + describe(v.tag));
-    #endif
-        v.packet = iter(tag);
+        int tag = static_cast<int>(this->sourceTag);
+        #ifdef APP_DEBUG_COMMUNICATION
+            dstream.write("SOURCE[" + describe(this->sourceTag) + "] RECEIVER[" + std::to_string(this->receiver_id) + "]");
+        #endif
+        this->packetToReceive = iter(tag);
     }
 }
 
-void MsgReceiver::Visit::Overloaded::operator()(SpecificTarget target)
+MsgReceiver::Target MsgReceiver::getTargetId() const
 {
-    switch(target) {
-        case SpecificTarget::Self:
-            this->operator()(v.receiverId);
-        break;
+    return target_id;
+}
 
-        case SpecificTarget::All:
-            this->operator()(v.allTarget);
-        break;
-    }
+int MsgReceiver::getReceiverId() const
+{
+    return receiver_id;
 }

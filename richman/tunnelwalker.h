@@ -12,7 +12,7 @@ class TunnelWalker: public Runnable
 {
     using miliseconds = std::chrono::milliseconds;
     const miliseconds waitTime = miliseconds(500);
-    std::atomic<RichmanInfo> &parentData;
+    std::atomic<RichmanInfo> *parentData;
     Place place;
     std::vector<Tunnel> tInfo;
 
