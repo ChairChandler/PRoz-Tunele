@@ -15,24 +15,32 @@ MsgReceiver::MsgReceiver(int receiverId, MsgReceiver::Target targetId):
 Packet MsgReceiver::wait()
 {
     this->sourceTag = MsgComm::MsgSourceTag::Unknown;
-    std::visit(this, this->target_id);
+    this->handleOperation();
     return this->packetToReceive;
 }
 
 Packet MsgReceiver::wait(MsgComm::MsgSourceTag tag)
 {
     this->sourceTag = tag;
-    std::visit(this, this->target_id);
+    this->handleOperation();
     return this->packetToReceive;
+}
+
+void MsgReceiver::handleOperation()
+{
+    struct _ {
+        MsgReceiver &p;
+        explicit _(MsgReceiver &p): p(p) {}
+        void operator()(int val) {p(val);}
+        void operator()(std::vector<int> val) {p(val);}
+    };
+    std::visit(_(*this), this->target_id);
 }
 
 void MsgReceiver::operator()(int target)
 {
     Packet packet;
     if(this->sourceTag == MsgComm::MsgSourceTag::Unknown) {
-        #ifdef APP_DEBUG_COMMUNICATION
-            dstream.write("SOURCE[UNKNOWN] RECEIVER[" + std::to_string(this->receiver_id) + "]");
-        #endif
         MPI_Recv(&packet, sizeof(Packet), MPI_BYTE, target, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         #ifdef APP_DEBUG_COMMUNICATION
             bool isRequest;
@@ -42,7 +50,7 @@ void MsgReceiver::operator()(int target)
                         [&action, &isRequest](MsgComm::Response res){action = describe(res); isRequest = false;});
 
             dstream.write("PACKET_NO[" + std::to_string(packet.getPacketNo()) + "] " +
-                          "SOURCE[UNKNOWN] " +
+                          "TAG[UNKNOWN] " +
                           std::string((isRequest ? "RECEIVE[REQUEST] " : "RECEIVE[RESPONSE] ")) +
                           "SENDER[" + describe(packet.getSender()) + ", " + std::to_string(target) + "] " +
                           "RECEIVER[" + describe(packet.getReceiver()) + ", " + std::to_string(this->receiver_id) + "] " +
@@ -51,9 +59,6 @@ void MsgReceiver::operator()(int target)
     } else {
         int tag = static_cast<int>(this->sourceTag);
 
-        #ifdef APP_DEBUG_COMMUNICATION
-            dstream.write("SOURCE[" + describe(this->sourceTag) + "] RECEIVER[" + std::to_string(this->receiver_id) + "]");
-        #endif
         MPI_Recv(&packet, sizeof(Packet), MPI_BYTE, target, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         #ifdef APP_DEBUG_COMMUNICATION
             bool isRequest;
@@ -63,7 +68,7 @@ void MsgReceiver::operator()(int target)
                         [&action, &isRequest](MsgComm::Response res){action = describe(res); isRequest = false;});
 
             dstream.write("PACKET_NO[" + std::to_string(packet.getPacketNo()) + "] " +
-                          "SOURCE[" + describe(this->sourceTag) + "] " +
+                          "TAG[" + describe(this->sourceTag) + "] " +
                           std::string((isRequest ? "RECEIVE[REQUEST] " : "RECEIVE[RESPONSE] ")) +
                           "SENDER[" + describe(packet.getSender()) + ", " + std::to_string(target) + "] " +
                           "RECEIVER[" + describe(packet.getReceiver()) + ", " + std::to_string(this->receiver_id) + "] " +
@@ -94,7 +99,7 @@ void MsgReceiver::operator()(std::vector<int> target)
                                     [&action, &isRequest](MsgComm::Response res){action = describe(res); isRequest = false;});
 
                         dstream.write("PACKET_NO[" + std::to_string(packet.getPacketNo()) + "] " +
-                                      "SOURCE[" + describe(this->sourceTag) + "] " +
+                                      "TAG[" + describe(this->sourceTag) + "] " +
                                       std::string((isRequest ? "RECEIVE[REQUEST] " : "RECEIVE[RESPONSE] ")) +
                                       "SENDER[" + describe(packet.getSender()) + ", " + std::to_string(id) + "] " +
                                       "RECEIVER[" + describe(packet.getReceiver()) + ", " + std::to_string(this->receiver_id) + "] " +
@@ -107,15 +112,9 @@ void MsgReceiver::operator()(std::vector<int> target)
     };
 
     if(this->sourceTag == MsgComm::MsgSourceTag::Unknown) {
-        #ifdef APP_DEBUG_COMMUNICATION
-            dstream.write("SOURCE[UNKNOWN] RECEIVER[" + std::to_string(this->receiver_id) + "]");
-        #endif
         this->packetToReceive = iter(MPI_ANY_TAG);
     } else {
         int tag = static_cast<int>(this->sourceTag);
-        #ifdef APP_DEBUG_COMMUNICATION
-            dstream.write("SOURCE[" + describe(this->sourceTag) + "] RECEIVER[" + std::to_string(this->receiver_id) + "]");
-        #endif
         this->packetToReceive = iter(tag);
     }
 }

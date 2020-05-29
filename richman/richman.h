@@ -5,20 +5,7 @@
 #include "tunnelwalker.h"
 #include "msgdispatcher.h"
 #include <atomic>
-
-class AtomicRichmanInfo {
-    std::atomic<RichmanInfo> shared;
-public:
-    explicit AtomicRichmanInfo(const RichmanInfo &info);
-    RichmanInfo getInfo() const;
-    AtomicRichmanInfo& incrementCounter();
-    AtomicRichmanInfo& incrementCounter(int val);
-
-    AtomicRichmanInfo& setCounter(int val);
-    int getCounter() const;
-    int getId() const;
-    void operator=(const RichmanInfo &info);
-};
+#include "atomicrichmaninfo.h"
 
 class Richman
 {

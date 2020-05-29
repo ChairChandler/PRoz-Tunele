@@ -4,9 +4,9 @@
 #include "models/richmaninfo.h"
 #include "tunnel/tunnel.h"
 #include "models/packet.h"
-#include "richman.h"
 #include <map>
 #include <memory>
+#include "atomicrichmaninfo.h"
 
 class MsgDispatcher: public Runnable
 {
@@ -17,7 +17,8 @@ private:
     AtomicRichmanInfo &parentData;
     TunnelMap tunnels;
     const int richmansAmount;
-    std::vector<int> allTargets;
+    std::vector<int> allTargets, otherDispatchers;
+    const int id;
 
     int selfWalkerTunnelId;
     int selfWalkerPositiveResponse = 0;

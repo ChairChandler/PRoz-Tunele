@@ -13,6 +13,7 @@ SOURCES += \
         models/richmaninfo.cpp \
         msg/msgreceiver.cpp \
         msg/msgsender.cpp \
+        richman/atomicrichmaninfo.cpp \
         richman/msgdispatcher.cpp \
         richman/richman.cpp \
         richman/tunnelwalker.cpp \
@@ -27,6 +28,7 @@ HEADERS += \
     models/richmaninfo.h \
     msg/msgreceiver.h \
     msg/msgsender.h \
+    richman/atomicrichmaninfo.h \
     richman/msgdispatcher.h \
     richman/richman.h \
     thread/runnable.h \

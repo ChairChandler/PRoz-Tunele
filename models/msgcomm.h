@@ -20,15 +20,18 @@ inline std::string describe(MsgComm::Sender r)
         case Sender::Walker:        return "SENDER_WALKER";
         case Sender::Dispatcher:    return "SENDER_DISPATCHER";
     }
+    return "";
 }
 
 inline std::string describe(MsgComm::Receiver r)
 {
     using namespace MsgComm;
     switch(r) {
+        case Receiver::Unknown:       return "RECEIVER_UNKNOWN";
         case Receiver::Walker:        return "RECEIVER_WALKER";
         case Receiver::Dispatcher:    return "RECEIVER_DISPATCHER";
     }
+    return "";
 }
 
 inline std::string describe(MsgComm::Request r)
@@ -38,6 +41,7 @@ inline std::string describe(MsgComm::Request r)
         case Request::Enter:    return "REQUEST_ENTER";
         case Request::Exit:     return "REQUEST_EXIT";
     }
+    return "";
 }
 
 inline std::string describe(MsgComm::Response r)
@@ -48,6 +52,7 @@ inline std::string describe(MsgComm::Response r)
         case Response::Exit:    return "RESPONSE_EXIT";
         case Response::Deny:    return "RESPONSE_DENY";
     }
+    return "";
 }
 
 inline std::string describe(MsgComm::MsgSourceTag r)
@@ -58,6 +63,7 @@ inline std::string describe(MsgComm::MsgSourceTag r)
         case MsgSourceTag::Walker:      return "MSG_SOURCE_TAG_WALKER";
         case MsgSourceTag::Dispatcher:  return "MSG_SOURCE_TAG_DISPATCHER";
     }
+    return "";
 }
 #endif
 

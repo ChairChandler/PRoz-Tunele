@@ -15,6 +15,7 @@ private:
     MsgComm::MsgSourceTag sourceTag;
     Packet packetToReceive;
 
+    void handleOperation();
     void operator()(int target);
     void operator()(std::vector<int> target);
 public:

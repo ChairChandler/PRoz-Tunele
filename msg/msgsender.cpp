@@ -16,7 +16,18 @@ MsgSender::MsgSender(int sender_id, const Target &target_id):
 void MsgSender::send(const Packet &packet)
 {
     this->packetToSend = packet;
-    std::visit(this, this->target_id);
+    this->handleOperation();
+}
+
+void MsgSender::handleOperation()
+{
+    struct _ {
+        MsgSender &p;
+        explicit _(MsgSender &p): p(p) {}
+        void operator()(int val) {p(val);}
+        void operator()(std::vector<int> val) {p(val);}
+    };
+    std::visit(_(*this), this->target_id);
 }
 
 void MsgSender::operator()(int target)
@@ -45,10 +56,6 @@ void MsgSender::operator()(int target)
     #endif
 
     MPI_Send(&this->packetToSend, sizeof(Packet), MPI_BYTE, target, tag, MPI_COMM_WORLD); // send packet(data)
-
-    #ifdef APP_DEBUG_COMMUNICATION
-        dstream.write("PACKET_NO[" + std::to_string(this->packetToSend.getPacketNo()) + "] SENT");
-    #endif
 }
 
 void MsgSender::operator()(std::vector<int> target)

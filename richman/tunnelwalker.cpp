@@ -39,25 +39,37 @@ int TunnelWalker::enterTunnel()
                 continue;
             } else {
                 int tid = tInfo.getTunnelId();
-                int myCounter = this->parentData.incrementCounter().getCounter();
+                this->parentData.incrementCounter();
 
-                dstream.write("Clock after sent = " + std::to_string(myCounter));
+                dstream.write("Clock after sent = " + std::to_string(this->parentData.getCounter()));
                 walkerSender.send(Packet(MsgComm::Sender::Walker, MsgComm::Receiver::Dispatcher, MsgComm::Request::Enter, this->parentData.getInfo(), tid));
 
                 Packet p = walkerReceiver.wait(MsgComm::MsgSourceTag::Dispatcher);
 
-                int maxCounter = std::max(myCounter, p.getData().getCounter());
+                int maxCounter = std::max(this->parentData.getCounter(), p.getData().getCounter());
                 this->parentData.setCounter(maxCounter + 1);
 
                 dstream.write("Clock after received = " + std::to_string(this->parentData.getCounter()));
-                p.getCmd([](MsgComm::Request){}, [tid](MsgComm::Response res){
+
+                bool enter;
+                p.getCmd([](MsgComm::Request){}, [&enter](MsgComm::Response res){
                     switch(res) {
-                        case MsgComm::Response::Enter:  return tid;
-                        case MsgComm::Response::Deny:   break;
+                        case MsgComm::Response::Enter:
+                            enter = true;
+                        break;
+
+                        case MsgComm::Response::Deny:
+                            enter = false;
+                        break;
+
                         default:
                             throw std::runtime_error("cannot handle reply code in walker " + std::string(__FILE__) + " " + std::to_string(__LINE__));
                     }
                 });
+
+                if(enter) {
+                    return tid;
+                }
             }
         }
     }

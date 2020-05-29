@@ -4,7 +4,7 @@
 #include "models/place.h"
 #include "models/richmaninfo.h"
 #include "tunnel/tunnel.h"
-#include "richman.h"
+#include "atomicrichmaninfo.h"
 #include <chrono>
 #include <vector>
 

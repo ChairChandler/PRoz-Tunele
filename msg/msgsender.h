@@ -17,6 +17,7 @@ private:
 
     Packet packetToSend;
 
+    void handleOperation();
     void operator()(int target);
     void operator()(std::vector<int> target);
 public:
