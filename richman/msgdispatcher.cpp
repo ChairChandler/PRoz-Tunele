@@ -8,6 +8,15 @@
 
 #include "utils/appdebug.h"
 
+/* WAZNE!!! PO ODEBRANIU WIADOMOSCI OD SIEBIE NIE MOZNA ZWIEKSZAC JUZ LICZNIKA NAWET JAK WYSYLAMY
+ * W PRZECIWNYM WYPADKU NASTAPI ZAKLESZCZENIE/BLEDNE PRZEPUSZCZANIE
+ *
+ * p1	[(id=1, clk=1), (id=0, clk=3)] przepuszcza 1
+
+   p0	[(id=0, clk=1), (id=1, clk=3)] przepuszcza 0
+ *
+*/
+
 MsgDispatcher::MsgDispatcher(AtomicRichmanInfo &parentData, const TunnelMap &tunnels, int richmansAmount):
     parentData(parentData), tunnels(tunnels), richmansAmount(richmansAmount), id(parentData.getId())
 {
@@ -64,12 +73,14 @@ void MsgDispatcher::handleRequest(const Packet &packet, MsgComm::Request req)
                 dstream.write("Deny push to tunnel");
                 dstream.write("Clock after sent = " + std::to_string(this->parentData.getCounter()));
                 MsgSender(this->id, expectant_id).send(Packet(MsgComm::Sender::Dispatcher,
-                                                              MsgComm::Receiver::Unknown,
+                                                              expectant_id == this->id ? MsgComm::Receiver::Walker : MsgComm::Receiver::Dispatcher,
                                                               MsgComm::Response::Deny,
                                                               this->parentData.getInfo(), tunnel.getTunnelId()));
             } else {
-                tunnel.appendQueue(packet.getData()).sortQueueByTime();
+                tunnel.appendQueue(packet.getData()).sortQueue();
+
                 if(expectant_id != this->id) {
+
                     if(tunnel.isFirstInQueue(packet.getData()) && !tunnel.isTunnelFilled()) {
                         tunnel.insertTunnel(expectant_id);
                         this->parentData.incrementCounter();
@@ -168,39 +179,41 @@ void MsgDispatcher::handleSelfWalker()
     Tunnel &tunnel = *this->tunnels[this->selfWalkerTunnelId].get();
 
     if(this->selfWalkerPositiveResponse == amountSenders) {
-        this->selfWalkerPositiveResponse = 0;
-        this->parentData.incrementCounter();
 
         if(tunnel.isInsideTunnel(this->id)) {
+            this->selfWalkerPositiveResponse = 0;
             tunnel.removeFromTunnel(this->id);
 
             dstream.write("Remove self from tunnel");
+        } else if(!tunnel.isTunnelFilled()) {
+                /*
+                 * moze sie zdarzyc sytuacja w której otrzymam zgode od wszystkich lecz u mnie
+                 * nie bede juz pierwszy w kolejce, miedzy wyslaniem rządania a odebraniem
+                 * odpowiedzi ktoś mógł uzyskać pierwszeństwo w kolejce
+                 *
+                 * w takiej sytuacji muszę nagiąć zasady i wpuścić swojego do tunelu
+                 * pomimo niespełnienia wymagań
+                */
+
+            this->selfWalkerPositiveResponse = 0;
+
+            tunnel.removeFromQueue(this->id).insertTunnel(this->id);
+
+            dstream.write("Push self to tunnel");
+            this->parentData.incrementCounter();
             walker.send(Packet(MsgComm::Sender::Dispatcher,
                                MsgComm::Receiver::Walker,
-                               MsgComm::Response::Exit,
+                               MsgComm::Response::Enter,
                                this->parentData.getInfo(), this->selfWalkerTunnelId));
-        } else {
-            auto [first, ok] = tunnel.getFromQueue(0);
-            if(ok && first.getId() == this->id) {
-                tunnel.removeFromQueue(this->id).insertTunnel(this->id);
-
-                dstream.write("Push self to tunnel");
-                walker.send(Packet(MsgComm::Sender::Dispatcher,
-                                   MsgComm::Receiver::Walker,
-                                   MsgComm::Response::Enter,
-                                   this->parentData.getInfo(), this->selfWalkerTunnelId));
-            } else {
-                throw std::runtime_error("invalid queque state " + std::string(__FILE__) + " " +std::to_string(__LINE__));
-            }
         }
 
     } else if((this->selfWalkerNegativeResponse + this->selfWalkerPositiveResponse) == amountSenders) {
         this->selfWalkerNegativeResponse = 0;
         this->selfWalkerPositiveResponse = 0;
         tunnel.removeFromQueue(this->id);
-        this->parentData.incrementCounter();
 
         dstream.write("Deny self push to tunnel");
+        this->parentData.incrementCounter();
         walker.send(Packet(MsgComm::Sender::Dispatcher,
                            MsgComm::Receiver::Walker,
                            MsgComm::Response::Deny,

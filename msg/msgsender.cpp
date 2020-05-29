@@ -48,8 +48,8 @@ void MsgSender::operator()(int target)
                     [&action, &isRequest](MsgComm::Request req){action = describe(req); isRequest = true;},
                     [&action, &isRequest](MsgComm::Response res){action = describe(res); isRequest = false;});
 
-        dstream.write("PACKET_NO[" + std::to_string(this->packetToSend.getPacketNo()) + "] " +
-                      std::string((isRequest ? "SEND[REQUEST] " : "SEND[RESPONSE] ")) +
+        dstream.write("SEND "
+                      "PACKET_NO[" + std::to_string(this->packetToSend.getPacketNo()) + "] " +
                       "SENDER[" + describe(this->packetToSend.getSender()) + ", " + std::to_string(this->sender_id) + "] " +
                       "RECEIVER[" + describe(this->packetToSend.getReceiver()) + ", " + std::to_string(target) + "] " +
                       "ACTION[" + action + "]");

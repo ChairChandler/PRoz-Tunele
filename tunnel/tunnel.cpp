@@ -27,10 +27,19 @@ Tunnel& Tunnel::appendQueue(const RichmanInfo &info)
     return *this;
 }
 
-void Tunnel::sortQueueByTime()
+void Tunnel::sortQueue() // sort by time and id
 {
     std::sort(this->queue.begin(), this->queue.end(),
-              [](const RichmanInfo &a, const RichmanInfo &b){return a.getCounter() < b.getCounter();});
+              [](const RichmanInfo &a, const RichmanInfo &b)
+    {
+        if(a.getCounter() < b.getCounter()) {
+            return true;
+        } else if(a.getCounter() > b.getCounter()) {
+            return false;
+        } else {
+            return a.getId() < b.getId();
+        }
+    });
 }
 
 bool Tunnel::isFirstInQueue(const RichmanInfo &info) const
@@ -50,7 +59,7 @@ std::pair<RichmanInfo, bool> Tunnel::getFromQueue(int pos) const
 
 bool Tunnel::isTunnelFilled() const
 {
-    return this->inside.size() < this->inside.max_size();
+    return this->inside.size() >= this->inside.max_size();
 }
 
 bool Tunnel::isInsideTunnel(int id) const

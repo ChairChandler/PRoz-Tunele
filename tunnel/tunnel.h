@@ -28,7 +28,7 @@ public:
     Tunnel& removeFromQueue(int id);
     Tunnel& removeFromTunnel(int id);
 
-    void sortQueueByTime();
+    void sortQueue();
     bool isFirstInQueue(const RichmanInfo &info) const;
     std::pair<RichmanInfo, bool> getFromQueue(int pos) const;
 };

@@ -49,9 +49,9 @@ void MsgReceiver::operator()(int target)
                         [&action, &isRequest](MsgComm::Request req){action = describe(req); isRequest = true;},
                         [&action, &isRequest](MsgComm::Response res){action = describe(res); isRequest = false;});
 
-            dstream.write("PACKET_NO[" + std::to_string(packet.getPacketNo()) + "] " +
+            dstream.write("RECEIVED"
+                          "PACKET_NO[" + std::to_string(packet.getPacketNo()) + "] " +
                           "TAG[UNKNOWN] " +
-                          std::string((isRequest ? "RECEIVE[REQUEST] " : "RECEIVE[RESPONSE] ")) +
                           "SENDER[" + describe(packet.getSender()) + ", " + std::to_string(target) + "] " +
                           "RECEIVER[" + describe(packet.getReceiver()) + ", " + std::to_string(this->receiver_id) + "] " +
                           "ACTION[" + action + "]");
@@ -98,9 +98,9 @@ void MsgReceiver::operator()(std::vector<int> target)
                                     [&action, &isRequest](MsgComm::Request req){action = describe(req); isRequest = true;},
                                     [&action, &isRequest](MsgComm::Response res){action = describe(res); isRequest = false;});
 
-                        dstream.write("PACKET_NO[" + std::to_string(packet.getPacketNo()) + "] " +
+                        dstream.write("RECEIVED "
+                                      "PACKET_NO[" + std::to_string(packet.getPacketNo()) + "] " +
                                       "TAG[" + describe(this->sourceTag) + "] " +
-                                      std::string((isRequest ? "RECEIVE[REQUEST] " : "RECEIVE[RESPONSE] ")) +
                                       "SENDER[" + describe(packet.getSender()) + ", " + std::to_string(id) + "] " +
                                       "RECEIVER[" + describe(packet.getReceiver()) + ", " + std::to_string(this->receiver_id) + "] " +
                                       "ACTION[" + action + "]");

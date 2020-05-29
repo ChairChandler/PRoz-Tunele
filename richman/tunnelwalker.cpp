@@ -18,6 +18,7 @@ void TunnelWalker::run()
         dstream.write("Enter tunnel");
         int tunnel_id = this->enterTunnel();
 
+        dstream.write("Wait");
         this->wait();
 
         dstream.write("Exit tunnel");
