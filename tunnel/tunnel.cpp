@@ -44,7 +44,12 @@ void Tunnel::sortQueue() // sort by time and id
 
 bool Tunnel::isFirstInQueue(const RichmanInfo &info) const
 {
-    return this->queue[0] == info;
+    try {
+        auto val = this->queue.at(0) == info;
+        return val;
+    } catch(std::exception) {
+        return false;
+    }
 }
 
 std::pair<RichmanInfo, bool> Tunnel::getFromQueue(int pos) const

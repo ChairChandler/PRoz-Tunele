@@ -27,6 +27,8 @@ int main(int argc, char *argv[])
             dstream.read([](int src, std::string log) {
                 std::cout << "[" << src << "] " << log << std::endl;
             });
+
+            //std::this_thread::sleep_for(std::chrono::seconds(5));
         }
     }
 

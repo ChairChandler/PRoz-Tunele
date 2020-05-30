@@ -5,24 +5,25 @@
 #include "models/richmaninfo.h"
 #include "tunnel/tunnel.h"
 #include "atomicrichmaninfo.h"
-#include <chrono>
 #include <vector>
+#include "models/packet.h"
 
 class TunnelWalker: public Runnable
 {
-    using miliseconds = std::chrono::milliseconds;
-    const miliseconds waitTime = miliseconds(500);
     AtomicRichmanInfo &parentData;
-    Place place;
-    std::vector<Tunnel> tInfo;
+    Place destinationPlace;
+    std::vector<Tunnel> tunnels;
     const int id;
 
-
     int enterTunnel();
-    void wait();
+    bool isEnterResponse(Packet p);
     void exitTunnel(int tunnel_id);
+    void changePlace();
+
+    void sendReqToDispatcher(int tunnel_id);
+    Packet recvResFromDispatcher();
 public:
-    explicit TunnelWalker(AtomicRichmanInfo &parentData, Place startingPlace, const std::vector<Tunnel> &tInfo);
+    explicit TunnelWalker(AtomicRichmanInfo &parentData, Place startingPlace, const std::vector<Tunnel> &tunnels);
     void run() override;
 };
 

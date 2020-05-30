@@ -1,5 +1,6 @@
 #ifndef MSGDISPATCHER_H
 #define MSGDISPATCHER_H
+#define UNDEFINED -1
 #include "thread/runnable.h"
 #include "models/richmaninfo.h"
 #include "tunnel/tunnel.h"
@@ -20,7 +21,9 @@ private:
     std::vector<int> allTargets, otherDispatchers;
     const int id;
 
-    int selfWalkerTunnelId;
+    bool selfWalkerEnterRequest;
+    RichmanInfo selfWalkerRichmanInfo;
+    int selfWalkerTunnelId = UNDEFINED;
     int selfWalkerPositiveResponse = 0;
     int selfWalkerNegativeResponse = 0;
 
