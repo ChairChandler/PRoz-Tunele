@@ -1,44 +1,31 @@
 #ifndef MSGRECEIVER_H
 #define MSGRECEIVER_H
 #include "models/packet.h"
-#include "msgcomm.h"
+#include "models/msgcomm.h"
 #include <vector>
 
 class MsgReceiver
 {
 public:
-    using Target = std::variant<int, std::vector<int>, SpecificTarget>;
+    using Target = std::variant<int, std::vector<int>>;
 private:
-    class Visit // handle variant different types
-    {
-        bool anyTag;
-        MsgComm tag;
-        Packet packet;
-        int receiverId;
-        std::string receiverName;
-        static inline std::vector<int> allTarget = std::vector<int>();
-    public:
-        explicit Visit(std::string receiverName);
-        explicit Visit(int receiverId, MsgComm tag, std::string receiverName);
-        Packet getPacket() const;
-        static void setAllTarget(std::vector<int> target);
+    const Target target_id;
+    const int receiver_id;
 
-        struct Overloaded {
-            Visit &v;
-            explicit Overloaded(Visit &);
-            void operator()(int target);
-            void operator()(std::vector<int> target);
-            void operator()(SpecificTarget target);
-        } overloaded;
-    };
-    const Target targetId;
-    const int receiverId;
-    const std::string receiverName;
+    MsgComm::MsgSourceTag sourceTag;
+    Packet packetToReceive;
+
+    void handleOperation();
+    void operator()(int target);
+    void operator()(std::vector<int> target);
 public:
-    explicit MsgReceiver(int receiverId, Target targetId, const std::string &receiverName);
-    static void setAllTarget(std::vector<int> target);
+    explicit MsgReceiver(int receiver_id, Target target_id);
+
     Packet wait();
-    Packet wait(MsgComm tag);
+    Packet wait(MsgComm::MsgSourceTag tag);
+
+    Target getTargetId() const;
+    int getReceiverId() const;
 };
 
 #endif // MSGRECEIVER_H

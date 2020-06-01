@@ -1,6 +1,6 @@
 #include <mpi.h>
 #include "richman/richman.h"
-#include "msg/distributedstream.h"
+#include "utils/distributedstream.h"
 #include <chrono>
 
 int main(int argc, char *argv[])
@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
 
     int id, richmansAmount;
     //const int richmanGroupSize = 1;
-    const int tunnelsAmount = 2, tunnelCapacity = 2, queueCapacity = 5;
+    const int tunnelCapacity = 2, queueCapacity = 5;
 
     MPI_Comm_rank(MPI_COMM_WORLD, &id);
     MPI_Comm_size(MPI_COMM_WORLD, &richmansAmount);
@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
     dstream.setReceiver(richmansAmount - 1);
 
     if(id < (richmansAmount - 1)) {
-        Richman richman(id, richmansAmount - 1, tunnelsAmount, queueCapacity, tunnelCapacity);
+        Richman richman(id, richmansAmount - 1, queueCapacity, tunnelCapacity);
         richman.start();
         while(true);
     } else {
@@ -27,6 +27,8 @@ int main(int argc, char *argv[])
             dstream.read([](int src, std::string log) {
                 std::cout << "[" << src << "] " << log << std::endl;
             });
+
+            //std::this_thread::sleep_for(std::chrono::seconds(5));
         }
     }
 

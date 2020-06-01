@@ -4,10 +4,12 @@
 #include <stdexcept>
 #include "richman.h"
 #include <iostream>
-#include "msg/distributedstream.h"
+#include "utils/distributedstream.h"
 
-TunnelWalker::TunnelWalker(std::atomic<RichmanInfo> &parentData, Place startingPlace, const std::vector<Tunnel> &tInfo):
-    parentData(parentData), place(startingPlace), tInfo(tInfo)
+using namespace MsgComm;
+
+TunnelWalker::TunnelWalker(AtomicRichmanInfo &parentData, Place startingPlace, const std::vector<Tunnel> &tInfo):
+    parentData(parentData), destinationPlace(startingPlace), tunnels(tInfo), id(parentData.getId())
 {
 
 }
@@ -15,74 +17,86 @@ TunnelWalker::TunnelWalker(std::atomic<RichmanInfo> &parentData, Place startingP
 void TunnelWalker::run()
 {
     while(true) {
-        this->writeStream("Enter tunnel");
+        dstream.write("Choosing tunnel");
         int tunnel_id = this->enterTunnel();
 
-        this->wait();
-
-        this->writeStream("Exit tunnel");
+        dstream.write("Enter tunnel");
         this->exitTunnel(tunnel_id);
+        dstream.write("Exit tunnel");
 
-        this->writeStream("Wait");
-        this->wait();
+        dstream.write("Wait");
+        this->changePlace();
     }
 }
 
 int TunnelWalker::enterTunnel()
 {
-    thread_local MsgSender walkerSend(SpecificTarget::Self, this->name);
-    thread_local MsgReceiver walkerRecv(this->parentData.load().getId(), SpecificTarget::Self, this->name);
-
     while(true) {
-        for(const Tunnel &tInfo: this->tInfo) {
-            if(tInfo.getDirection() == this->place) {
-                continue;
-            } else {
+        for(const Tunnel &tInfo: this->tunnels) {
+            if(tInfo.getDirection() != this->destinationPlace) {
                 int tid = tInfo.getTunnelId();
-                this->parentData.store(this->parentData.load().incrementCounter());
-                int myCounter = this->parentData.load().getCounter();
+                this->sendReqToDispatcher(tid);
+                Packet p = this->recvResFromDispatcher();
 
-                this->writeStream("Clock after sent = " + std::to_string(myCounter));
-                walkerSend.sendRequest(Request::Enter, this->parentData, tid);
-
-                Packet p = walkerRecv.wait(MsgComm::ReplyRecvTag);
-
-                int maxCounter = std::max(myCounter, p.data.getCounter());
-                this->parentData.store(this->parentData.load().incrementCounter(maxCounter + 1));
-                this->writeStream("Clock after received = " + std::to_string(this->parentData.load().getCounter()));
-
-                switch(std::get<Reply>(p.type)) {
-                    case Reply::Enter:
-                        return tid;
-                    break;
-
-                    case Reply::Deny:
-                        continue;
-                    break;
-
-                    default:
-                        throw std::runtime_error("cannot handle reply code in walker " + std::string(__FILE__) + " " +std::to_string(__LINE__));
-                    break;
+                if(this->isEnterResponse(p)) {
+                    return tid;
                 }
             }
         }
     }
 }
 
-void TunnelWalker::wait()
+bool TunnelWalker::isEnterResponse(Packet p)
 {
-    std::this_thread::sleep_for(this->waitTime);
+    bool enter;
+    p.getCmd([](Request){}, [&enter](Response res){
+        switch(res) {
+            case Response::Enter:
+                enter = true;
+            break;
+
+            case Response::Deny:
+                enter = false;
+            break;
+
+            default:
+                throw std::runtime_error("cannot handle reply code in walker " + std::string(__FILE__) + " " + std::to_string(__LINE__));
+        }
+    });
+    return enter;
+}
+
+void TunnelWalker::sendReqToDispatcher(int tunnel_id)
+{
+    MsgSender walkerSender(this->id, this->id);
+    this->parentData.incrementCounter();
+
+    dstream.write("Clock after sent = " + std::to_string(this->parentData.getCounter()));
+    walkerSender.send(Packet(Sender::Walker, Receiver::Dispatcher, Request::Enter,
+                             this->parentData.getInfo(), tunnel_id));
+}
+
+Packet TunnelWalker::recvResFromDispatcher()
+{
+    MsgReceiver walkerReceiver(this->id, this->id);
+    Packet p = walkerReceiver.wait(MsgSourceTag::Dispatcher);
+
+    int maxCounter = std::max(this->parentData.getCounter(), p.getData().getCounter());
+    this->parentData.setCounter(maxCounter + 1);
+
+    dstream.write("Clock after received = " + std::to_string(this->parentData.getCounter()));
+    return p;
 }
 
 void TunnelWalker::exitTunnel(int tunnel_id)
 {
-    thread_local MsgSender walkerSend(SpecificTarget::Self, this->name);
-
-    this->parentData.store(this->parentData.load().incrementCounter());
-    walkerSend.sendRequest(Request::Exit, this->parentData, tunnel_id);
+    this->parentData.incrementCounter();
+    Packet p(Sender::Walker, Receiver::Dispatcher, Request::Exit,
+             this->parentData.getInfo(), tunnel_id);
+    MsgSender(this->id, this->id).send(p);
 }
 
-void TunnelWalker::writeStream(const std::string &m)
+void TunnelWalker::changePlace()
 {
-    dstream.write(this->name, m);
+    this->destinationPlace = this->destinationPlace == Place::Earth ? Place::Dimension : Place::Earth;
 }

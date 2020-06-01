@@ -5,18 +5,18 @@
 #include "tunnelwalker.h"
 #include "msgdispatcher.h"
 #include <atomic>
+#include "atomicrichmaninfo.h"
 
 class Richman
 {
-private:
-    std::atomic<RichmanInfo> info;
+    AtomicRichmanInfo info;
     Tunnel earthTunnel, dimTunnel;
     TunnelWalker walker;
     MsgDispatcher dispatcher;
     RunnableThread thWalker;
     RunnableThread thDispatcher;
 public:
-    explicit Richman(int id, int richmansAmount, int tunnelsAmount,
+    explicit Richman(int id, int richmansAmount,
                      size_t queueCapacity, size_t tunnelCapacity);
     void start();
     void stop();

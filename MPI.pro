@@ -9,27 +9,26 @@ INCLUDEPATH += /usr/lib/x86_64-linux-gnu/openmpi/include
 
 SOURCES += \
         main.cpp \
+        models/packet.cpp \
         models/richmaninfo.cpp \
-        msg/distributedstream.cpp \
         msg/msgreceiver.cpp \
         msg/msgsender.cpp \
+        richman/atomicrichmaninfo.cpp \
         richman/msgdispatcher.cpp \
         richman/richman.cpp \
         richman/tunnelwalker.cpp \
         thread/runnablethread.cpp \
-        tunnel/tunnel.cpp
+        tunnel/tunnel.cpp \
+        utils/distributedstream.cpp
 
 HEADERS += \
-    appdebug.h \
+    models/msgcomm.h \
     models/packet.h \
     models/place.h \
-    models/reply.h \
-    models/request.h \
     models/richmaninfo.h \
-    msg/distributedstream.h \
-    msg/msgcomm.h \
     msg/msgreceiver.h \
     msg/msgsender.h \
+    richman/atomicrichmaninfo.h \
     richman/msgdispatcher.h \
     richman/richman.h \
     thread/runnable.h \
@@ -37,4 +36,6 @@ HEADERS += \
     thread/runnablethread.h \
     tunnel/limiteddeque.h \
     tunnel/limitedset.h \
-    tunnel/tunnel.h
+    tunnel/tunnel.h \
+    utils/appdebug.h \
+    utils/distributedstream.h

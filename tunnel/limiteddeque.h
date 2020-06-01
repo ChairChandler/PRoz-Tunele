@@ -10,6 +10,7 @@ class LimitedDeque: public std::deque<T>
     using const_iterator = typename std::deque<T>::const_iterator;
     using size_type = typename std::deque<T>::size_type;
     using reference = typename std::deque<T>::reference;
+    using const_reference = typename std::deque<T>::const_reference;
 
     size_t maxSize;
 
@@ -53,6 +54,11 @@ public:
     {
         this->check_size();
         return std::deque<T>::push_front(value);
+    }
+
+    const_reference at(size_type __n) const
+    {
+        return std::deque<T>::at(__n);
     }
 
     //too much to implement size checking so delete it

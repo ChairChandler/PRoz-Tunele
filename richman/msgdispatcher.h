@@ -1,35 +1,38 @@
 #ifndef MSGDISPATCHER_H
 #define MSGDISPATCHER_H
+#define UNDEFINED -1
 #include "thread/runnable.h"
 #include "models/richmaninfo.h"
 #include "tunnel/tunnel.h"
 #include "models/packet.h"
-#include <atomic>
 #include <map>
 #include <memory>
+#include "atomicrichmaninfo.h"
 
 class MsgDispatcher: public Runnable
 {
-    std::atomic<RichmanInfo> &parentData;
-    std::map<int, std::shared_ptr<Tunnel>> tunnels;
-    const int richmansAmount;
-
-    int selfWalkerTunnelId;
-    int selfWalkerPositiveResponse = 0;
-    int selfWalkerNegativeResponse = 0;
-
-    const std::string name = "D";
-
-    void handleMsg(Request type, RichmanInfo data, int tunnel_id);
-    void handleMsg(Reply type, RichmanInfo data);
-    void executeOperation(Packet packet);
-    void handleSelfWalker();
-
-    void writeStream(const std::string &m);
 public:
     using TunnelPtr = std::shared_ptr<Tunnel>;
     using TunnelMap = std::map<int, TunnelPtr>;
-    explicit MsgDispatcher(std::atomic<RichmanInfo> &parentData, const TunnelMap &tunnels, int richmansAmount);
+private:
+    AtomicRichmanInfo &parentData;
+    TunnelMap tunnels;
+    const int richmansAmount;
+    std::vector<int> allTargets, otherDispatchers;
+    const int id;
+
+    bool selfWalkerEnterRequest;
+    RichmanInfo selfWalkerRichmanInfo;
+    int selfWalkerTunnelId = UNDEFINED;
+    int selfWalkerPositiveResponse = 0;
+    int selfWalkerNegativeResponse = 0;
+
+    void handleRequest(const Packet &packet, MsgComm::Request req);
+    void handleResponse(const Packet &packet, MsgComm::Response res);
+    void executeOperation(const Packet &packet);
+    void handleSelfWalker();
+public:
+    explicit MsgDispatcher(AtomicRichmanInfo &parentData, const TunnelMap &tunnels, int richmansAmount);
     void run() override;
 };
 

@@ -2,15 +2,18 @@
 #define RICHMANINFO_H
 
 
+
 class RichmanInfo
 {
     int counter = 0;
     int id;
 public:
-    RichmanInfo();
+    RichmanInfo() = default;
     RichmanInfo(int id);
+
     RichmanInfo& incrementCounter();
     RichmanInfo& incrementCounter(int val);
+
     void setCounter(int val);
     int getCounter() const;
     int getId() const;

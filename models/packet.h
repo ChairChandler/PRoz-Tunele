@@ -1,42 +1,34 @@
 #ifndef PACKET_H
 #define PACKET_H
 #include <variant>
-#include "request.h"
-#include "reply.h"
+#include <functional>
+#include "msgcomm.h"
 #include "richmaninfo.h"
-#include "tunnel/tunnel.h"
 
-struct Packet
+class Packet
 {
-    std::variant<Request, Reply> type;
+    unsigned int packetNo;
+    MsgComm::Sender sender;
+    MsgComm::Receiver receiver;
+    std::variant<MsgComm::Request, MsgComm::Response> cmd;
     RichmanInfo data;
     int tunnel_id;
 
-    // empty packet
-    Packet(): data(-1)
-    {
+    void incrementPacketNo();
+public:
+    using UnpackRequest = std::function<void(MsgComm::Request)>;
+    using UnpackResponse = std::function<void(MsgComm::Response)>;
 
-    }
-    // ready packet
-    Packet(std::variant<Request, Reply> type, RichmanInfo data, int tunnel_id):
-        type(type), data(data), tunnel_id(tunnel_id)
-    {
+    Packet() = default;
+    Packet(MsgComm::Sender sender, MsgComm::Receiver receiver, MsgComm::Request cmd, RichmanInfo data, int tunnel_id); // ready request
+    Packet(MsgComm::Sender sender, MsgComm::Receiver receiver, MsgComm::Response cmd, RichmanInfo data, int tunnel_id); // ready response
 
-    }
+    MsgComm::Sender getSender() const;
+    MsgComm::Receiver getReceiver() const;
+    void getCmd(UnpackRequest req, UnpackResponse res) const;
+    RichmanInfo getData() const;
+    int getTunnel_id() const;
+    unsigned int getPacketNo() const;
 };
-
-inline std::string describe(const std::variant<Request, Reply> &v)
-{
-    std::string d;
-    struct _ {
-       std::string &d;
-       _(std::string&d): d(d) {}
-       void operator()(Request r) {d = describe(r);}
-       void operator()(Reply r) {d = describe(r);}
-    };
-
-    std::visit(_(d), v);
-    return d;
-}
 
 #endif // PACKET_H
