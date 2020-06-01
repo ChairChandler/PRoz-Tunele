@@ -187,6 +187,7 @@ void MsgDispatcher::handleSelfWalker()
         }
     }
 
+
     if(this->selfWalkerPositiveResponse == amountSenders) {
 
         if(tunnel.isInsideTunnel(this->id)) {
