@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
 
     int id, richmansAmount;
     //const int richmanGroupSize = 1;
-    const int tunnelCapacity = 2, queueCapacity = 5;
+    const int tunnelCapacity = 1, queueCapacity = 5;
 
     MPI_Comm_rank(MPI_COMM_WORLD, &id);
     MPI_Comm_size(MPI_COMM_WORLD, &richmansAmount);

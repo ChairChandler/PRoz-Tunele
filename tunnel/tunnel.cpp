@@ -94,6 +94,17 @@ Tunnel &Tunnel::removeFromQueue(const RichmanInfo &info)
 
 Tunnel &Tunnel::removeFromTunnel(int id)
 {
+    if(this->inside.find(id) == this->inside.end()) {
+        std::string error = "cannot remove id " + std::to_string(id) + " from tunnel (" + std::to_string(this->id) + ", " +
+                                 describe(this->direction) + ")";
+
+        error += "\nELEMENTS: ";
+        for(int i: this->inside) {
+            error += std::to_string(i) + " ";
+        }
+
+        throw std::runtime_error(error);
+    }
     this->inside.erase(id);
     return *this;
 }

@@ -17,14 +17,15 @@ TunnelWalker::TunnelWalker(AtomicRichmanInfo &parentData, Place startingPlace, c
 void TunnelWalker::run()
 {
     while(true) {
-        dstream.write("Choosing tunnel");
+        dstream.write("WALKER: My place: " + describe(this->destinationPlace));
+        dstream.write("WALKER: Choosing tunnel");
         int tunnel_id = this->enterTunnel();
 
-        dstream.write("Enter tunnel");
+        dstream.write("WALKER: Enter tunnel id: " + std::to_string(tunnel_id));
         this->exitTunnel(tunnel_id);
-        dstream.write("Exit tunnel");
+        dstream.write("WALKER: Exit tunnel id: " + std::to_string(tunnel_id));
 
-        dstream.write("Wait");
+        dstream.write("WALKER: Wait");
         this->changePlace();
     }
 }

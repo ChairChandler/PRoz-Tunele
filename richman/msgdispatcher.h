@@ -21,7 +21,7 @@ private:
     std::vector<int> allTargets, otherDispatchers;
     const int id;
 
-    bool selfWalkerEnterRequest;
+    bool selfWalkerEnterRequest, selfWalkerExitRequest;
     RichmanInfo selfWalkerRichmanInfo;
     int selfWalkerTunnelId = UNDEFINED;
     int selfWalkerPositiveResponse = 0;

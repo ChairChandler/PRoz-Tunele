@@ -8,7 +8,6 @@ enum struct Place
     Dimension
 };
 
-#ifdef APP_DEBUG_COMMUNICATION
 #include "string"
 inline std::string describe(Place p)
 {
@@ -22,6 +21,5 @@ inline std::string describe(Place p)
         break;
     }
 }
-#endif
 
 #endif // PLACE_H

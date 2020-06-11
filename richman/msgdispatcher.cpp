@@ -76,11 +76,21 @@ void MsgDispatcher::handleRequest(const Packet &packet, Request req)
                                                               Response::Deny,
                                                               this->parentData.getInfo(), tunnel.getTunnelId()));
             } else {
-                tunnel.appendQueue(packet.getData()).sortQueue();
-
                 if(expectant_id != this->id) {
+                    tunnel.appendQueue(packet.getData()).sortQueue();
 
-                    if(tunnel.isFirstInQueue(packet.getData()) && !tunnel.isTunnelFilled()) {
+                    bool breakRule = false;
+                    if(this->selfWalkerEnterRequest) {
+                        const auto [first, ok_first] = tunnel.getFromQueue(0);
+                        const auto [second, ok_second] = tunnel.getFromQueue(1);
+                        if(ok_first && ok_second) {
+                            if(first.getId() == this->id && second.getId() == expectant_id && expectant_id < this->id) {
+                                breakRule = true;
+                            }
+                        }
+                    }
+
+                    if(breakRule || (tunnel.isFirstInQueue(packet.getData()) && !tunnel.isTunnelFilled())) {
                         tunnel.removeFromQueue(packet.getData()).insertTunnel(expectant_id);
                         this->parentData.incrementCounter();
 
@@ -91,7 +101,9 @@ void MsgDispatcher::handleRequest(const Packet &packet, Request req)
                     } else {
                         dstream.write("Push another to queue");
                     }
-                } else {
+                } else if(!this->selfWalkerExitRequest) {
+                    tunnel.appendQueue(packet.getData()).sortQueue();
+
                     this->selfWalkerTunnelId = tunnel.getTunnelId();
 
                     this->selfWalkerNegativeResponse = 0;
@@ -100,20 +112,46 @@ void MsgDispatcher::handleRequest(const Packet &packet, Request req)
                     this->selfWalkerEnterRequest = true;
                     this->selfWalkerRichmanInfo = packet.getData();
                     dstream.write("Push self to queue"); // obsluga tego rzadania w handleSelf
+                } else {
+                    dstream.write("Deny push self to queue, waiting for exit msg");
+                    MsgSender(this->id, this->id).send(Packet(Sender::Dispatcher, Receiver::Walker, Response::Deny,
+                                                              this->parentData.getInfo(), tunnel.getTunnelId()));
                 }
             }
         break;
 
         case Request::Exit:
             if(expectant_id != this->id) {
-                tunnel.removeFromTunnel(expectant_id);
+                tunnel.removeFromTunnel(expectant_id); // TODO: BŁĄD TUTAJ!!!
+
                 this->parentData.incrementCounter();
 
                 dstream.write("Remove another from tunnel " + describe(tunnel.getDirection()));
                 dstream.write("Clock after sent = " + std::to_string(this->parentData.getCounter()));
+                MsgSender(this->id, expectant_id).
+                        send(Packet(Sender::Dispatcher, Receiver::Dispatcher, Response::Exit,
+                                    this->parentData.getInfo(), tunnel.getTunnelId()));
+
+
+                auto [first, ok] = tunnel.getFromQueue(0);
+                if(ok) {
+                    if(this->id != first.getId()) {
+                        tunnel.removeFromQueue(first).insertTunnel(first.getId());
+
+
+                        this->parentData.incrementCounter();
+
+                        dstream.write("Push another to tunnel " + describe(tunnel.getDirection()));
+                        dstream.write("Clock after sent = " + std::to_string(this->parentData.getCounter()));
+                        MsgSender(this->id, first.getId()).send(Packet(Sender::Dispatcher, Receiver::Dispatcher, Response::Enter,
+                                                                       this->parentData.getInfo(), tunnel.getTunnelId()));
+                    }
+                }
+
             } else {
                 this->selfWalkerTunnelId = tunnel.getTunnelId();
 
+                this->selfWalkerExitRequest = true;
                 this->selfWalkerNegativeResponse = 0;
                 this->selfWalkerPositiveResponse = 0;
 
@@ -121,26 +159,6 @@ void MsgDispatcher::handleRequest(const Packet &packet, Request req)
                 MsgSender(this->id, this->otherDispatchers).
                         send(Packet(Sender::Dispatcher, Receiver::Dispatcher, Request::Exit,
                                     this->parentData.getInfo(), tunnel.getTunnelId()));
-            }
-
-
-            auto [first, ok] = tunnel.getFromQueue(0);
-            if(ok) {
-                tunnel.removeFromQueue(first).insertTunnel(first.getId());
-
-                if(this->id != first.getId()) {
-                    this->parentData.incrementCounter();
-
-                    dstream.write("Push another to tunnel " + describe(tunnel.getDirection()));
-                    dstream.write("Clock after sent = " + std::to_string(this->parentData.getCounter()));
-                    MsgSender(this->id, first.getId()).send(Packet(Sender::Dispatcher, Receiver::Dispatcher, Response::Enter,
-                                                                   this->parentData.getInfo(), tunnel.getTunnelId()));
-                } else {
-                    dstream.write("Push self to tunnel " + describe(tunnel.getDirection()));
-                    MsgSender(this->id, this->id).send(
-                                Packet(Sender::Dispatcher, Receiver::Walker, Response::Enter,
-                                       this->parentData.getInfo(), this->selfWalkerTunnelId));
-                }
             }
         break;
     }
@@ -195,10 +213,12 @@ void MsgDispatcher::handleSelfWalker()
 
             dstream.write("Remove self from tunnel " + describe(tunnel.getDirection()));
             this->selfWalkerTunnelId = UNDEFINED;
+            this->selfWalkerExitRequest = false;
 
             auto [first, ok] = tunnel.getFromQueue(0);
             if(ok) {
-                tunnel.removeFromQueue(first);
+                tunnel.removeFromQueue(first).insertTunnel(first.getId());
+
                 this->parentData.incrementCounter();
 
                 dstream.write("Push another to tunnel " + describe(tunnel.getDirection()));

@@ -19,7 +19,8 @@ class LimitedSet: public std::set<T>
     void check_size()
     {
         if(this->size() + 1 > this->max_size()) {
-            throw std::runtime_error("maximum size exceeded " + std::string(__FILE__) + " " +std::to_string(__LINE__));
+            throw std::runtime_error("maximum size exceeded (actual size: " + std::to_string(this->size()) + ")" +
+                                     std::string(__FILE__) + " " +std::to_string(__LINE__));
         }
     }
 public:
