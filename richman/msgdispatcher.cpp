@@ -11,32 +11,56 @@
 using namespace MsgComm;
 
 MsgDispatcher::MsgDispatcher(AtomicRichmanInfo &parentData, const TunnelMap &tunnels, int richmansAmount):
-    parentData(parentData), tunnels(tunnels), richmansAmount(richmansAmount), id(parentData.getId())
+    parentData(parentData), tunnels(tunnels), id(parentData.getId())
 {
-    this->allTargets.resize(richmansAmount);
+    this->walkers.resize(richmansAmount);
     for(int id=0; id < richmansAmount; id++) {
-        this->allTargets[id] = id;
+        this->walkers[id] = id;
     }
-
-    otherDispatchers = this->allTargets;
-    otherDispatchers.erase(std::remove_if(otherDispatchers.begin(), otherDispatchers.end(), [this](int v){return v == this->id;}));
 }
 
 void MsgDispatcher::run()
 {
-    MsgReceiver recv(this->parentData.getId(), this->allTargets);
+    MsgReceiver recv(this->id, this->walkers);
     while(true) {
-        dstream.write("Waiting for msg");
-        Packet p = recv.wait();
+        this->print("Waiting for msg");
+        Packet p = recv.wait(MsgSourceTag::Walker);
 
-        dstream.write("Execute operation");
+        this->print("Execute operation");
         this->executeOperation(p);
 
-        if(this->selfWalkerTunnelId != UNDEFINED) {
-            dstream.write("Handle self");
-            this->handleSelfWalker();
-        }
+        this->printTunnels();
     }
+}
+
+void MsgDispatcher::printTunnels()
+{
+    #ifdef APP_DEBUG_TUNNELS
+    for(auto [id, tunnel]: this->tunnels) {
+        std::string tqueue, tinside;
+        for(auto t: tunnel->getQueue()) {
+            tqueue += std::to_string(t.getId()) + " ";
+        }
+
+        for(auto t: tunnel->getInside()) {
+            tinside += std::to_string(t) + " ";
+        }
+        std::string dir = describe(tunnel->getDirection());
+
+        dstream.write("");
+        dstream.write(dir);
+        dstream.write("INSIDE: " + tinside);
+        dstream.write("QUEUE: " + tqueue);
+        dstream.write("");
+    }
+#endif
+}
+
+void MsgDispatcher::print(std::string str)
+{
+    #ifdef APP_DEBUG_DISPATCHER
+    dstream.write("DISPATCHER: " + str);
+    #endif
 }
 
 void MsgDispatcher::executeOperation(const Packet &packet)
@@ -44,212 +68,98 @@ void MsgDispatcher::executeOperation(const Packet &packet)
     // decode operation type
     packet.getCmd([&packet, this](Request req) {
         this->handleRequest(packet, req);
-    }, [&packet, this](Response res) {
-        this->handleResponse(packet, res);
-    });
+    }, [](Response) {});
 }
 
 void MsgDispatcher::handleRequest(const Packet &packet, Request req)
 {
-    Tunnel &tunnel = *this->tunnels[packet.getTunnel_id()].get();
+    int tid = packet.getTunnel_id();
+    Tunnel &tunnel = *this->tunnels[tid].get();
     const int expectant_id = packet.getData().getId();
     const int expectant_counter = packet.getData().getCounter();
 
     if(expectant_id != this->id) {
-        int val = std::max(this->parentData.getCounter(), expectant_counter);
-        this->parentData.setCounter(val + 1);
-        dstream.write("Clock after received = " + std::to_string(val + 1));
+        int val = std::max(this->parentData.getCounter(), expectant_counter) + 1;
+        this->parentData.setCounter(val);
     }
 
     switch(req) {
         case Request::Enter:
             if(tunnel.isQueueFilled()) {
 
-                dstream.write("Deny push to tunnel " + describe(tunnel.getDirection()));
+                this->print("Deny push to queue " + describe(tunnel.getDirection()));
                 if(expectant_id != this->id) {
                     this->parentData.incrementCounter();
-                    dstream.write("Clock after sent = " + std::to_string(this->parentData.getCounter()));
                 }
 
                 MsgSender(this->id, expectant_id).send(Packet(Sender::Dispatcher,
-                                                              expectant_id == this->id ? Receiver::Walker : Receiver::Dispatcher,
+                                                              Receiver::Walker,
                                                               Response::Deny,
                                                               this->parentData.getInfo(), tunnel.getTunnelId()));
             } else {
+                tunnel.appendQueue(packet.getData()).sortQueue();
+                this->print("Push to queue " + describe(tunnel.getDirection()));
+
                 if(expectant_id != this->id) {
-                    tunnel.appendQueue(packet.getData()).sortQueue();
-
-                    bool breakRule = false;
-                    if(this->selfWalkerEnterRequest) {
-                        const auto [first, ok_first] = tunnel.getFromQueue(0);
-                        const auto [second, ok_second] = tunnel.getFromQueue(1);
-                        if(ok_first && ok_second) {
-                            if(first.getId() == this->id && second.getId() == expectant_id && expectant_id < this->id) {
-                                breakRule = true;
-                            }
-                        }
-                    }
-
-                    if(breakRule || (tunnel.isFirstInQueue(packet.getData()) && !tunnel.isTunnelFilled())) {
-                        tunnel.removeFromQueue(packet.getData()).insertTunnel(expectant_id);
-                        this->parentData.incrementCounter();
-
-                        dstream.write("Push another to tunnel " + describe(tunnel.getDirection()));
-                        dstream.write("Clock after sent = " + std::to_string(this->parentData.getCounter()));
-                        MsgSender(this->id, expectant_id).send(Packet(Sender::Dispatcher, Receiver::Dispatcher, Response::Enter,
-                                                                      this->parentData.getInfo(), tunnel.getTunnelId()));
-                    } else {
-                        dstream.write("Push another to queue");
-                    }
-                } else if(!this->selfWalkerExitRequest) {
-                    tunnel.appendQueue(packet.getData()).sortQueue();
-
-                    this->selfWalkerTunnelId = tunnel.getTunnelId();
-
-                    this->selfWalkerNegativeResponse = 0;
-                    this->selfWalkerPositiveResponse = 0;
-
-                    this->selfWalkerEnterRequest = true;
-                    this->selfWalkerRichmanInfo = packet.getData();
-                    dstream.write("Push self to queue"); // obsluga tego rzadania w handleSelf
-                } else {
-                    dstream.write("Deny push self to queue, waiting for exit msg");
-                    MsgSender(this->id, this->id).send(Packet(Sender::Dispatcher, Receiver::Walker, Response::Deny,
-                                                              this->parentData.getInfo(), tunnel.getTunnelId()));
+                    this->parentData.incrementCounter();
                 }
-            }
-        break;
+
+                if(tunnel.isFirstInQueue(packet.getData()) && !tunnel.isTunnelFilled()) {
+                    tunnel.removeFromQueue(expectant_id).insertTunnel(expectant_id);
+
+                    this->print("Remove from queue, push to tunnel " + describe(tunnel.getDirection()));
+
+                    MsgSender(this->id, expectant_id).send(Packet(Sender::Dispatcher, Receiver::Walker, Response::Accept,
+                                                                  this->parentData.getInfo(), tunnel.getTunnelId()));
+                } else {
+                    MsgSender(this->id, expectant_id).send(Packet(Sender::Dispatcher, Receiver::Walker, Response::InQueue,
+                                                                  this->parentData.getInfo(), tunnel.getTunnelId()));
+                }
+            } break;
 
         case Request::Exit:
+        {
+            tunnel.removeFromTunnel(expectant_id).removeFromQueue(expectant_id); // w kolejce lub w tunelu
+
+            this->print("Remove from tunnel/queue " + describe(tunnel.getDirection()));
             if(expectant_id != this->id) {
-                tunnel.removeFromTunnel(expectant_id); // TODO: BŁĄD TUTAJ!!!
-
                 this->parentData.incrementCounter();
-
-                dstream.write("Remove another from tunnel " + describe(tunnel.getDirection()));
-                dstream.write("Clock after sent = " + std::to_string(this->parentData.getCounter()));
-                MsgSender(this->id, expectant_id).
-                        send(Packet(Sender::Dispatcher, Receiver::Dispatcher, Response::Exit,
-                                    this->parentData.getInfo(), tunnel.getTunnelId()));
-
-
-                auto [first, ok] = tunnel.getFromQueue(0);
-                if(ok) {
-                    if(this->id != first.getId()) {
-                        tunnel.removeFromQueue(first).insertTunnel(first.getId());
-
-
-                        this->parentData.incrementCounter();
-
-                        dstream.write("Push another to tunnel " + describe(tunnel.getDirection()));
-                        dstream.write("Clock after sent = " + std::to_string(this->parentData.getCounter()));
-                        MsgSender(this->id, first.getId()).send(Packet(Sender::Dispatcher, Receiver::Dispatcher, Response::Enter,
-                                                                       this->parentData.getInfo(), tunnel.getTunnelId()));
-                    }
-                }
-
-            } else {
-                this->selfWalkerTunnelId = tunnel.getTunnelId();
-
-                this->selfWalkerExitRequest = true;
-                this->selfWalkerNegativeResponse = 0;
-                this->selfWalkerPositiveResponse = 0;
-
-                dstream.write("Inform another about remove self from tunnel " + describe(tunnel.getDirection()));
-                MsgSender(this->id, this->otherDispatchers).
-                        send(Packet(Sender::Dispatcher, Receiver::Dispatcher, Request::Exit,
-                                    this->parentData.getInfo(), tunnel.getTunnelId()));
             }
-        break;
-    }
-}
 
-void MsgDispatcher::handleResponse(const Packet &packet, Response res)
-{
-    const int expectant_counter = packet.getData().getCounter();
-
-    int counter = std::max(this->parentData.getCounter(), expectant_counter);
-    this->parentData.setCounter(counter + 1);
-
-    dstream.write("Clock after received = " + std::to_string(counter + 1));
-
-    switch(res) {
-        case Response::Enter:
-            this->selfWalkerPositiveResponse++;
-        break;
-
-        case Response::Exit:
-            this->selfWalkerPositiveResponse++;
-        break;
-
-        case Response::Deny:
-            this->selfWalkerNegativeResponse++;
-        break;
-    }
-}
-
-void MsgDispatcher::handleSelfWalker()
-{
-    MsgSender walker(this->id, this->id);
-    int amountSenders = this->richmansAmount - 1;
-
-    Tunnel &tunnel = *this->tunnels[this->selfWalkerTunnelId].get();
-
-    if(this->selfWalkerEnterRequest) {
-        if(tunnel.isFirstInQueue(this->selfWalkerRichmanInfo) && !tunnel.isTunnelFilled()) {
-            this->selfWalkerEnterRequest = false;
-            dstream.write("Ask another for push self to tunnel " + describe(tunnel.getDirection()));
-            MsgSender(this->id, this->otherDispatchers).
-                    send(Packet(Sender::Dispatcher, Receiver::Dispatcher, Request::Enter,
+            MsgSender(this->id, expectant_id).
+                    send(Packet(Sender::Dispatcher, Receiver::Walker, Response::Accept,
                                 this->parentData.getInfo(), tunnel.getTunnelId()));
-        }
-    }
-
-
-    if(this->selfWalkerPositiveResponse == amountSenders) {
-
-        if(tunnel.isInsideTunnel(this->id)) {
-            tunnel.removeFromTunnel(this->id);
-
-            dstream.write("Remove self from tunnel " + describe(tunnel.getDirection()));
-            this->selfWalkerTunnelId = UNDEFINED;
-            this->selfWalkerExitRequest = false;
 
             auto [first, ok] = tunnel.getFromQueue(0);
-            if(ok) {
-                tunnel.removeFromQueue(first).insertTunnel(first.getId());
+            if(ok && !tunnel.isTunnelFilled()) {
+                tunnel.removeFromQueue(first.getId()).insertTunnel(first.getId());
 
-                this->parentData.incrementCounter();
+                this->print("Push to tunnel " + describe(tunnel.getDirection()));
+                if(expectant_id != this->id) {
+                    this->parentData.incrementCounter();
+                }
 
-                dstream.write("Push another to tunnel " + describe(tunnel.getDirection()));
-                dstream.write("Clock after sent = " + std::to_string(this->parentData.getCounter()));
-                MsgSender(this->id, first.getId()).send(Packet(Sender::Dispatcher, Receiver::Dispatcher, Response::Enter,
+                MsgSender(this->id, first.getId()).send(Packet(Sender::Dispatcher, Receiver::Walker, Response::Accept,
                                                                this->parentData.getInfo(), tunnel.getTunnelId()));
             }
-        } else if(!tunnel.isTunnelFilled()) {
-                /*
-                 * moze sie zdarzyc sytuacja w której otrzymam zgode od wszystkich lecz u mnie
-                 * nie bede juz pierwszy w kolejce, miedzy wyslaniem rządania a odebraniem
-                 * odpowiedzi ktoś mógł uzyskać pierwszeństwo w kolejce
-                 *
-                 * w takiej sytuacji muszę nagiąć zasady i wpuścić swojego do tunelu
-                 * pomimo niespełnienia wymagań
-                */
 
-            tunnel.removeFromQueue(this->id).insertTunnel(this->id);
-            this->selfWalkerTunnelId = UNDEFINED;
+            } break;
 
-            dstream.write("Push self to tunnel " + describe(tunnel.getDirection()));
-            walker.send(Packet(Sender::Dispatcher, Receiver::Walker, Response::Enter,
-                               this->parentData.getInfo(), this->selfWalkerTunnelId));
-        }
+        case Request::Status:
+        {
+            Response status;
+            if(tunnel.isInsideTunnel(expectant_id)) {
+                status = Response::Accept;
+            } else if(tunnel.isInsideQueue(expectant_id)) {
+                status = Response::InQueue;
+            } else {
+                throw std::runtime_error("invalid response status " + std::string(__FILE__) + " " + std::to_string(__LINE__));
+            }
 
-    } else if((this->selfWalkerNegativeResponse + this->selfWalkerPositiveResponse) == amountSenders) {
-        tunnel.removeFromQueue(this->id);
-        this->selfWalkerTunnelId = UNDEFINED;
+            MsgSender(this->id, expectant_id, MsgComm::MsgSourceTag::RollbackWalker)
+                    .send(Packet(Sender::Dispatcher, Receiver::Walker, status,
+                                 this->parentData.getInfo(), tunnel.getTunnelId()));
 
-        dstream.write("Deny self push to tunnel " + describe(tunnel.getDirection()));
-        walker.send(Packet(Sender::Dispatcher, Receiver::Walker, Response::Deny,
-                           this->parentData.getInfo(), this->selfWalkerTunnelId));
+            } break;
     }
 }

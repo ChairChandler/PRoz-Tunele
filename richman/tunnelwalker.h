@@ -10,20 +10,30 @@
 
 class TunnelWalker: public Runnable
 {
+    using DispatchersID = std::vector<int>;
+
     AtomicRichmanInfo &parentData;
     Place destinationPlace;
     std::vector<Tunnel> tunnels;
-    const int id;
+    const int id, dispatchersAmount;
+    DispatchersID dispatchers;
 
     int enterTunnel();
-    bool isEnterResponse(Packet p);
     void exitTunnel(int tunnel_id);
     void changePlace();
 
-    void sendReqToDispatcher(int tunnel_id);
-    Packet recvResFromDispatcher();
+    void sendReqStatusToDispatchers(int tunnel_id);
+    void sendReqEnterToDispatchers(int tunnel_id);
+    void sendReqExitToDispatchers(int tunnel_id);
+    void sendReqRollbackToDispatchers(int tunnel_id, DispatchersID dis);
+    void clearWalkerChannel(int neutralDispatchers);
+
+    struct Responses {int positive, neutral, negative;};
+    std::tuple<DispatchersID, Responses> recvResFromDispatchers(MsgComm::MsgSourceTag tag, DispatchersID dispatchers);
+
+    void print(std::string str);
 public:
-    explicit TunnelWalker(AtomicRichmanInfo &parentData, Place startingPlace, const std::vector<Tunnel> &tunnels);
+    explicit TunnelWalker(AtomicRichmanInfo &parentData, Place startingPlace, const std::vector<Tunnel> &tunnels, int richmansAmount);
     void run() override;
 };
 

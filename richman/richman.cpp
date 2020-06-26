@@ -5,7 +5,7 @@ Richman::Richman(int id, int richmansAmount, size_t queueCapacity, size_t tunnel
     info(RichmanInfo(id)),
     earthTunnel(0, queueCapacity, tunnelCapacity, Place::Earth),
     dimTunnel(1, queueCapacity, tunnelCapacity, Place::Dimension),
-    walker(info, Place::Earth, std::vector<Tunnel>{earthTunnel, dimTunnel}),
+    walker(info, Place::Earth, std::vector<Tunnel>{earthTunnel, dimTunnel}, richmansAmount),
     dispatcher(info, MsgDispatcher::TunnelMap{
         {earthTunnel.getTunnelId(), std::make_shared<Tunnel>(earthTunnel)},
         {dimTunnel.getTunnelId(), std::make_shared<Tunnel>(dimTunnel)}},

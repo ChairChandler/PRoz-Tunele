@@ -5,10 +5,10 @@
 namespace MsgComm
 {
     enum struct Sender          { Walker, Dispatcher };
-    enum struct Receiver        { Unknown, Walker, Dispatcher };
-    enum struct Request         { Enter, Exit };
-    enum struct Response        { Enter, Exit, Deny };
-    enum struct MsgSourceTag    { Unknown, Walker, Dispatcher };
+    enum struct Receiver        { Walker, Dispatcher };
+    enum struct Request         { Enter, Exit, Status };
+    enum struct Response        { Accept, InQueue, Deny };
+    enum struct MsgSourceTag    { Walker, Dispatcher, RollbackWalker };
 }
 
 #ifdef APP_DEBUG_COMMUNICATION
@@ -27,7 +27,6 @@ inline std::string describe(MsgComm::Receiver r)
 {
     using namespace MsgComm;
     switch(r) {
-        case Receiver::Unknown:       return "RECEIVER_UNKNOWN";
         case Receiver::Walker:        return "RECEIVER_WALKER";
         case Receiver::Dispatcher:    return "RECEIVER_DISPATCHER";
     }
@@ -38,8 +37,9 @@ inline std::string describe(MsgComm::Request r)
 {
     using namespace MsgComm;
     switch(r) {
-        case Request::Enter:    return "REQUEST_ENTER";
-        case Request::Exit:     return "REQUEST_EXIT";
+        case Request::Enter:            return "REQUEST_ENTER";
+        case Request::Exit:             return "REQUEST_EXIT";
+        case Request::Status:           return "REQUEST_STATUS";
     }
     return "";
 }
@@ -48,9 +48,9 @@ inline std::string describe(MsgComm::Response r)
 {
     using namespace MsgComm;
     switch(r) {
-        case Response::Enter:   return "RESPONSE_ENTER";
-        case Response::Exit:    return "RESPONSE_EXIT";
+        case Response::Accept:  return "RESPONSE_ACCEPT";
         case Response::Deny:    return "RESPONSE_DENY";
+        case Response::InQueue: return "RESPONSE_IN_QUEUE";
     }
     return "";
 }
@@ -59,9 +59,9 @@ inline std::string describe(MsgComm::MsgSourceTag r)
 {
     using namespace MsgComm;
     switch(r) {
-        case MsgSourceTag::Unknown:     return "MSG_SOURCE_TAG_UNKNOWN";
-        case MsgSourceTag::Walker:      return "MSG_SOURCE_TAG_WALKER";
-        case MsgSourceTag::Dispatcher:  return "MSG_SOURCE_TAG_DISPATCHER";
+        case MsgSourceTag::Walker:          return "MSG_SOURCE_TAG_WALKER";
+        case MsgSourceTag::Dispatcher:      return "MSG_SOURCE_TAG_DISPATCHER";
+        case MsgSourceTag::RollbackWalker:  return "MSG_SOURCE_TAG_ROLLBACK_WALKER";
     }
     return "";
 }

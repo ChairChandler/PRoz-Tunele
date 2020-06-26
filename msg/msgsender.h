@@ -14,6 +14,8 @@ public:
 private:
     const int sender_id;
     const Target target_id;
+    MsgComm::MsgSourceTag specialTag;
+    bool isSpecialTag = false;
 
     Packet packetToSend;
 
@@ -22,6 +24,7 @@ private:
     void operator()(std::vector<int> target);
 public:
     explicit MsgSender(int sender_id, const Target &target_id);
+    explicit MsgSender(int sender_id, const Target &target_id, MsgComm::MsgSourceTag src);
 
     void send(const Packet &packet);
 

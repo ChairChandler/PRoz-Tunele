@@ -1,6 +1,9 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
-#define APP_DEBUG_COMMUNICATION
+//#define APP_DEBUG_COMMUNICATION
+#define APP_DEBUG_WALKER
+#define APP_DEBUG_TUNNELS
+//#define APP_DEBUG_DISPATCHER
 
 #endif // DEBUG_H

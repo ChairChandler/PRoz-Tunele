@@ -13,6 +13,12 @@ MsgSender::MsgSender(int sender_id, const Target &target_id):
 
 }
 
+MsgSender::MsgSender(int sender_id, const MsgSender::Target &target_id, MsgComm::MsgSourceTag src):
+    sender_id(sender_id), target_id(target_id), specialTag(src), isSpecialTag(true)
+{
+
+}
+
 void MsgSender::send(const Packet &packet)
 {
     this->packetToSend = packet;
@@ -33,13 +39,16 @@ void MsgSender::handleOperation()
 void MsgSender::operator()(int target)
 {   
     int tag;
-    if(target != this->sender_id) {
-        tag = static_cast<int>(MsgComm::MsgSourceTag::Dispatcher); // dispatcher -> dispatcher
+    MsgComm::MsgSourceTag src;
+    if(this->isSpecialTag) {
+        src = this->specialTag;
     } else if(this->packetToSend.getReceiver() == MsgComm::Receiver::Walker) {
-        tag = static_cast<int>(MsgComm::MsgSourceTag::Dispatcher);
+        src = MsgComm::MsgSourceTag::Dispatcher;
     } else {
-        tag = static_cast<int>(MsgComm::MsgSourceTag::Walker);
+        src = MsgComm::MsgSourceTag::Walker;
     }
+
+    tag = static_cast<int>(src);
 
     #ifdef APP_DEBUG_COMMUNICATION
         bool isRequest;
@@ -50,6 +59,7 @@ void MsgSender::operator()(int target)
 
         dstream.write("SEND "
                       "PACKET_NO[" + std::to_string(this->packetToSend.getPacketNo()) + "] " +
+                      "TAG[" + describe(src) + "] " +
                       "SENDER[" + describe(this->packetToSend.getSender()) + ", " + std::to_string(this->sender_id) + "] " +
                       "RECEIVER[" + describe(this->packetToSend.getReceiver()) + ", " + std::to_string(target) + "] " +
                       "ACTION[" + action + "]");

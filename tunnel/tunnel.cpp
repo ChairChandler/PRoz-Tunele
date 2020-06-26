@@ -6,6 +6,16 @@ Place Tunnel::getDirection() const
     return direction;
 }
 
+LimitedDeque<RichmanInfo> Tunnel::getQueue() const
+{
+    return queue;
+}
+
+LimitedSet<int> Tunnel::getInside() const
+{
+    return inside;
+}
+
 Tunnel::Tunnel(int tunnelId, size_t queueMaxSize, size_t insideMaxSize, Place direction):
     queue(queueMaxSize), inside(insideMaxSize), direction(direction), id(tunnelId) {
 
@@ -67,6 +77,14 @@ bool Tunnel::isTunnelFilled() const
     return this->inside.size() >= this->inside.max_size();
 }
 
+bool Tunnel::isInsideQueue(int id) const
+{
+    auto itr = std::find_if(this->queue.begin(), this->queue.end(),
+                        [&id](const RichmanInfo &r){return r.getId() == id;});
+
+    return itr == this->queue.end() ? false : true;
+}
+
 bool Tunnel::isInsideTunnel(int id) const
 {
     return this->inside.find(id) == this->inside.end() ? false : true;
@@ -81,30 +99,17 @@ Tunnel &Tunnel::insertTunnel(int id)
 Tunnel &Tunnel::removeFromQueue(int id)
 {
     auto it = std::find_if(this->queue.begin(), this->queue.end(), [&id](const RichmanInfo &a){return a.getId() == id;});
-    this->queue.erase(it);
-    return *this;
-}
-
-Tunnel &Tunnel::removeFromQueue(const RichmanInfo &info)
-{
-    auto it = std::find_if(this->queue.begin(), this->queue.end(), [&info](const RichmanInfo &a){return info == a;});
-    this->queue.erase(it);
+    if(it != this->queue.end()) {
+        this->queue.erase(it);
+    }
     return *this;
 }
 
 Tunnel &Tunnel::removeFromTunnel(int id)
 {
-    if(this->inside.find(id) == this->inside.end()) {
-        std::string error = "cannot remove id " + std::to_string(id) + " from tunnel (" + std::to_string(this->id) + ", " +
-                                 describe(this->direction) + ")";
-
-        error += "\nELEMENTS: ";
-        for(int i: this->inside) {
-            error += std::to_string(i) + " ";
-        }
-
-        throw std::runtime_error(error);
+    auto itr = this->inside.find(id);
+    if(itr != this->inside.end()) {
+        this->inside.erase(itr);
     }
-    this->inside.erase(id);
     return *this;
 }

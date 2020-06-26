@@ -1,8 +1,6 @@
 #ifndef RICHMANINFO_H
 #define RICHMANINFO_H
 
-
-
 class RichmanInfo
 {
     int counter = 0;

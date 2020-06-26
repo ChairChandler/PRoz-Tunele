@@ -21,7 +21,6 @@ private:
 public:
     explicit MsgReceiver(int receiver_id, Target target_id);
 
-    Packet wait();
     Packet wait(MsgComm::MsgSourceTag tag);
 
     Target getTargetId() const;

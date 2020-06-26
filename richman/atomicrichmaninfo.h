@@ -12,6 +12,7 @@ public:
     AtomicRichmanInfo& incrementCounter(int val);
 
     AtomicRichmanInfo& setCounter(int val);
+    AtomicRichmanInfo& setIfMax(int val);
     int getCounter() const;
     int getId() const;
     void operator=(const RichmanInfo &info);

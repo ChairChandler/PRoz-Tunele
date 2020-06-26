@@ -15,7 +15,6 @@ void AtomicRichmanInfo::operator=(const RichmanInfo &info)
     this->shared.store(info);
 }
 
-
 AtomicRichmanInfo &AtomicRichmanInfo::incrementCounter()
 {
     auto info = this->getInfo();
@@ -37,6 +36,15 @@ AtomicRichmanInfo &AtomicRichmanInfo::setCounter(int val)
     auto info = this->getInfo();
     info.setCounter(val);
     this->operator=(info);
+    return *this;
+}
+
+AtomicRichmanInfo &AtomicRichmanInfo::setIfMax(int val)
+{
+    auto info = this->getInfo();
+    if(info.getCounter() < val) {
+        info.setCounter(val);
+    }
     return *this;
 }
 

@@ -1,6 +1,5 @@
 #ifndef MSGDISPATCHER_H
 #define MSGDISPATCHER_H
-#define UNDEFINED -1
 #include "thread/runnable.h"
 #include "models/richmaninfo.h"
 #include "tunnel/tunnel.h"
@@ -17,20 +16,13 @@ public:
 private:
     AtomicRichmanInfo &parentData;
     TunnelMap tunnels;
-    const int richmansAmount;
-    std::vector<int> allTargets, otherDispatchers;
+    std::vector<int> walkers;
     const int id;
 
-    bool selfWalkerEnterRequest, selfWalkerExitRequest;
-    RichmanInfo selfWalkerRichmanInfo;
-    int selfWalkerTunnelId = UNDEFINED;
-    int selfWalkerPositiveResponse = 0;
-    int selfWalkerNegativeResponse = 0;
-
-    void handleRequest(const Packet &packet, MsgComm::Request req);
-    void handleResponse(const Packet &packet, MsgComm::Response res);
     void executeOperation(const Packet &packet);
-    void handleSelfWalker();
+    void handleRequest(const Packet &packet, MsgComm::Request req);
+    void printTunnels();
+    void print(std::string str);
 public:
     explicit MsgDispatcher(AtomicRichmanInfo &parentData, const TunnelMap &tunnels, int richmansAmount);
     void run() override;
